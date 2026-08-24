@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ERP영업 활성화 TFT 주간 회의 보고서</title>
+<style>
+  :root{
+    --pur-1:#9B8FF0; --pur-2:#5B4BE0; --pur-3:#2A1F7A; --gold:#D9A441;
+    --ink:#1B1B2B; --g1:#6B6B80; --g2:#A9A9BC; --line:#DCDCE8; --bg:#F5F5FA; --fill:#FCFCFE;
+    --ok:#2E9E6B; --warn:#C9522E;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;padding:0 0 80px;background:var(--bg);color:var(--ink);
+    font-family:"Pretendard","Malgun Gothic","맑은 고딕","Noto Sans KR",-apple-system,sans-serif;font-size:13px;line-height:1.5;}
+  .wrap{max-width:1240px;margin:0 auto;padding:0 14px;}
+
+  /* 툴바 */
+  .bar{position:sticky;top:0;z-index:50;background:#fff;border-bottom:1px solid var(--line);box-shadow:0 1px 8px rgba(42,31,122,.06);}
+  .bar-in{max-width:1240px;margin:0 auto;padding:9px 14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .bar select{min-width:220px;}
+  select,input,textarea{font-family:inherit;font-size:12.5px;color:var(--ink);}
+  .bar select,.btn{height:31px;border-radius:5px;border:1px solid var(--line);background:#fff;padding:0 11px;cursor:pointer;font-weight:600;}
+  .btn{font-size:12.5px;}
+  .btn:hover{border-color:var(--pur-1);}
+  .btn.pri{background:var(--pur-2);border-color:var(--pur-2);color:#fff;}
+  .btn.pri:hover{background:var(--pur-3);}
+  .btn.dan{color:var(--warn);}
+  .status{margin-left:auto;font-size:11.5px;color:var(--g2);white-space:nowrap;}
+  .status.ok{color:var(--ok);} .status.err{color:var(--warn);}
+
+  /* 헤더 */
+  .head{background:linear-gradient(115deg,var(--pur-3) 0%,var(--pur-2) 68%,var(--pur-1) 100%);color:#fff;padding:20px 24px 18px;position:relative;border-radius:6px 6px 0 0;}
+  .head::after{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;background:var(--gold);}
+  .head .eyebrow{font-size:11px;letter-spacing:.18em;color:#D6D0FF;font-weight:600;}
+  .head h1{margin:6px 0 3px;font-size:22px;font-weight:800;letter-spacing:-.02em;}
+  .head .sub{font-size:12px;color:#CFC8FF;}
+  .paper{background:#fff;border:1px solid var(--line);border-top:0;border-radius:0 0 6px 6px;overflow:hidden;margin-bottom:20px;}
+  .top{margin-top:16px;}
+
+  /* 메타 */
+  .meta{width:100%;border-collapse:collapse;}
+  .meta th,.meta td{border:1px solid var(--line);padding:5px 8px;font-size:12.5px;}
+  .meta th{background:#F2F0FC;color:var(--pur-3);font-weight:700;width:82px;text-align:left;white-space:nowrap;}
+  .meta input,.meta select{width:100%;border:0;background:transparent;padding:3px 2px;outline:none;}
+  .meta input:focus,.meta select:focus{background:#F0EDFF;border-radius:3px;}
+
+  section{padding:18px 22px 4px;}
+  .sec-title{display:flex;align-items:center;gap:9px;margin:0 0 8px;}
+  .sec-no{width:22px;height:22px;border-radius:4px;background:var(--pur-2);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+  .sec-title h2{margin:0;font-size:15px;font-weight:800;letter-spacing:-.01em;}
+  .sec-title .hint{font-size:11px;color:var(--g2);font-weight:500;}
+  .sec-title .add{margin-left:auto;}
+  .add-btn{height:26px;padding:0 10px;border-radius:5px;border:1px dashed var(--pur-1);background:#F7F5FF;color:var(--pur-2);font-weight:700;font-size:11.5px;cursor:pointer;}
+  .add-btn:hover{background:#EFEBFF;}
+
+  /* 스코어보드 */
+  .score{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;}
+  .card{border:1px solid var(--line);border-top:3px solid var(--pur-2);border-radius:4px;padding:9px 11px;background:var(--fill);}
+  .card:first-child{border-top-color:var(--gold);}
+  .card .k{font-size:10.5px;color:var(--g1);font-weight:600;}
+  .card .v{font-size:20px;font-weight:800;color:var(--pur-3);margin-top:1px;letter-spacing:-.02em;}
+  .card .v .u{font-size:11px;font-weight:600;color:var(--g1);margin-left:2px;}
+  .card .d{font-size:10.5px;color:var(--g2);margin-top:1px;}
+
+  /* 데이터 테이블 */
+  .scroll{overflow-x:auto;border:1px solid var(--line);}
+  table.grid{border-collapse:collapse;width:100%;min-width:900px;}
+  .grid th{background:var(--pur-3);color:#fff;font-size:11.5px;font-weight:700;padding:6px 5px;border:1px solid #3A2E8C;text-align:center;letter-spacing:-.01em;}
+  .grid td{border:1px solid var(--line);padding:0;background:var(--fill);vertical-align:middle;}
+  .grid tbody tr:nth-child(even) td{background:#FAFAFD;}
+  .grid td input,.grid td select,.grid td textarea{width:100%;border:0;background:transparent;padding:6px 5px;outline:none;font-size:12px;resize:none;}
+  .grid td textarea{min-height:30px;line-height:1.35;}
+  .grid td input:focus,.grid td select:focus,.grid td textarea:focus{background:#F0EDFF;}
+  .grid td.num input{text-align:right;}
+  .grid td.ctr input,.grid td.ctr select{text-align:center;}
+  .grid td.calc{text-align:center;font-size:11.5px;color:var(--g1);font-weight:600;padding:6px 4px;}
+  .grid tfoot td{background:#F2F0FC;font-weight:700;color:var(--pur-3);text-align:center;font-size:11.5px;padding:6px 5px;}
+  .grid tfoot td.r{text-align:right;}
+  .del{width:26px;height:24px;border:0;background:transparent;color:var(--g2);cursor:pointer;font-size:15px;line-height:1;}
+  .del:hover{color:var(--warn);}
+  .empty{padding:14px;text-align:center;color:var(--g2);font-size:12px;}
+  .legend{font-size:10.5px;color:var(--g1);margin:6px 0 0;}
+  .legend b{color:var(--pur-2);}
+  .memo{width:100%;border:1px solid var(--line);background:var(--fill);border-radius:4px;padding:9px 11px;min-height:66px;font-size:12.5px;outline:none;}
+  .memo:focus{border-color:var(--pur-1);}
+
+  .foot{margin-top:16px;padding:13px 22px 18px;border-top:1px solid var(--line);background:#FAFAFD;font-size:11px;color:var(--g1);}
+  .foot b{color:var(--pur-3);}
+  .foot ul{margin:5px 0 0;padding-left:16px;} .foot li{margin:2px 0;}
+  .notice{background:#FFF8E8;border:1px solid #EBD9A8;color:#7A5A12;border-radius:5px;padding:8px 11px;font-size:11.5px;margin:12px 0 0;}
+
+  @media print{
+    body{background:#fff;font-size:10.5px;}
+    .bar,.add-btn,.del,.noprint{display:none !important;}
+    .paper{border:0;} section{padding:10px 12px 2px;break-inside:avoid;}
+    .scroll{overflow:visible;} table.grid{min-width:0;}
+    .grid td input,.grid td select,.grid td textarea{padding:3px;}
+    @page{size:A4 landscape;margin:9mm;}
+  }
+  @media (max-width:760px){ .score{grid-template-columns:repeat(2,1fr);} section{padding:14px 12px 4px;} }
+</style>
+</head>
+<body>
+<style>
+  /* 로그인 오버레이 */
+  #authOverlay{position:fixed;inset:0;z-index:999;background:linear-gradient(115deg,var(--pur-3) 0%,var(--pur-2) 68%,var(--pur-1) 100%);display:flex;align-items:center;justify-content:center;padding:20px;}
+  .auth-box{background:#fff;border-radius:10px;padding:30px 28px 26px;width:100%;max-width:360px;box-shadow:0 12px 40px rgba(0,0,0,.25);}
+  .auth-box h2{margin:0 0 4px;font-size:18px;font-weight:800;color:var(--pur-3);letter-spacing:-.02em;}
+  .auth-box .sub{font-size:12px;color:var(--g1);margin-bottom:18px;}
+  .auth-box label{display:block;font-size:11.5px;font-weight:700;color:var(--g1);margin:12px 0 4px;}
+  .auth-box input{width:100%;height:38px;border:1px solid var(--line);border-radius:6px;padding:0 12px;font-size:13px;outline:none;}
+  .auth-box input:focus{border-color:var(--pur-1);background:#FBFAFF;}
+  .auth-box .auth-btn{width:100%;height:40px;border:0;border-radius:6px;background:var(--pur-2);color:#fff;font-weight:700;font-size:13.5px;cursor:pointer;margin-top:18px;}
+  .auth-box .auth-btn:hover{background:var(--pur-3);}
+  .auth-box .auth-btn:disabled{background:var(--g2);cursor:wait;}
+  .auth-msg{font-size:12px;margin-top:10px;min-height:16px;color:var(--warn);text-align:center;}
+  .auth-msg.ok{color:var(--ok);}
+  .auth-toggle{font-size:12px;color:var(--g1);text-align:center;margin-top:14px;}
+  .auth-toggle a{color:var(--pur-2);font-weight:700;cursor:pointer;text-decoration:none;}
+  .user-badge{font-size:11.5px;color:var(--pur-3);font-weight:700;white-space:nowrap;}
+</style>
+<div id="authOverlay">
+  <div class="auth-box">
+    <h2 id="authTitle">ERP영업 활성화 TFT</h2>
+    <div class="sub" id="authSub">주간 회의 보고서 시스템 · 로그인</div>
+    <label>이메일</label>
+    <input type="email" id="authEmail" placeholder="name@newzensol.com" autocomplete="username">
+    <label>비밀번호</label>
+    <input type="password" id="authPw" placeholder="6자 이상" autocomplete="current-password">
+    <button class="auth-btn" id="authBtn">로그인</button>
+    <div class="auth-msg" id="authMsg"></div>
+    <div class="auth-toggle" id="authToggle">계정이 없나요? <a id="authSwitch">회원가입</a></div>
+  </div>
+</div>
+
+<div class="bar noprint">
+  <div class="bar-in">
+    <select id="loadSel" title="저장된 회의 불러오기"><option value="">— 저장된 회의 불러오기 —</option></select>
+    <button class="btn" id="btnNew">＋ 새 보고서</button>
+    <button class="btn pri" id="btnSave">저장</button>
+    <button class="btn" id="btnCsv">CSV 내보내기</button>
+    <button class="btn" id="btnPrint">인쇄 / PDF</button>
+    <button class="btn dan" id="btnDel">삭제</button>
+    <span class="status" id="status">준비됨</span>
+    <span class="user-badge" id="userBadge"></span>
+    <button class="btn" id="btnLogout" style="display:none">로그아웃</button>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="top"></div>
+  <div class="head">
+    <div class="eyebrow">NEWGEN SOLUTION · 전략기술사업그룹</div>
+    <h1>ERP영업 활성화 TFT 주간 회의 보고서</h1>
+    <div class="sub">매주 화 · 목 정기 개최 &nbsp;|&nbsp; 화요일 = 주중 진행점검 · 목요일 = 주간 마감보고</div>
+  </div>
+
+  <div class="paper">
+    <table class="meta">
+      <tr>
+        <th>회 차</th><td style="width:12%"><input id="m_round" placeholder="예: 2026-34차"></td>
+        <th>일 자</th><td style="width:12%"><input id="m_date" type="date"></td>
+        <th>요 일</th><td style="width:8%"><select id="m_day"><option>화</option><option>목</option><option>임시</option></select></td>
+        <th>시 간</th><td style="width:10%"><input id="m_time" type="time"></td>
+        <th>장 소</th><td><input id="m_place" placeholder="본사 회의실 / 온라인"></td>
+      </tr>
+      <tr>
+        <th>주 관</th><td><input id="m_host"></td>
+        <th>작성자</th><td><input id="m_writer"></td>
+        <th>참 석</th><td colspan="5"><input id="m_att" placeholder="이름 쉼표로 구분"></td>
+      </tr>
+      <tr>
+        <th>불참／대행</th><td colspan="9"><input id="m_abs"></td>
+      </tr>
+    </table>
+
+    <section>
+      <div class="sec-title"><span class="sec-no" style="background:var(--gold)">◆</span><h2>금주 요약</h2><span class="hint">아래 입력값에서 자동 집계됩니다</span></div>
+      <div class="score" id="score"></div>
+    </section>
+
+    <div id="sections"></div>
+
+    <section style="padding-bottom:10px">
+      <div class="sec-title"><span class="sec-no" style="background:var(--g1)">＋</span><h2>기타 공유사항</h2></div>
+      <textarea class="memo" id="m_etc" placeholder="경쟁사 동향 · 시장 정보 · 파트너 이슈 · 제품 업데이트 공유 등"></textarea>
+    </section>
+
+    <div class="foot">
+      <b>작성 규칙</b>
+      <ul>
+        <li>회의 <b>전일 18시까지</b> 각 담당이 본인 영역을 입력하고, 주관자가 확인 후 회의 시작 전 공유한다.</li>
+        <li>금액 단위는 <b>만원(VAT 별도)</b>. 계약은 <b>날인 완료 기준</b>, 소스발굴은 <b>확도 기준</b>으로 이중 집계하지 않는다.</li>
+        <li>화요일은 1·3·4번(진행 점검) 중심, 목요일은 전 항목 + 6·7번(마감·의사결정) 중심으로 운영한다.</li>
+        <li>고객사·담당자 정보는 개인정보에 해당하므로 열람 범위를 TFT 참석자로 제한한다.</li>
+      </ul>
+      <div class="notice noprint"><b>데이터 저장 안내</b> — 저장한 보고서는 이 문서를 여는 <b>모든 TFT 구성원이 함께 조회·수정</b>할 수 있는 공용 저장소에 기록됩니다. 고객 개인정보(연락처·주민번호 등)는 입력하지 마세요.</div>
+      <div style="margin-top:10px;text-align:right;color:var(--g2)">뉴젠솔루션 ERP영업 활성화 TFT · 서식 v2.0</div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+/* ─────────── 스키마 정의 ─────────── */
+const T = {
+  text:'text', num:'num', date:'date', sel:'sel', area:'area'
+};
+const SCHEMA = [
+{
+  key:'contracts', no:1, title:'금주 계약사항', hint:'계약서 날인 완료 건만 · 구두합의는 2번으로',
+  legend:'<b>제품구분</b> K-ERP(케이렙) / Y-ERP / Zenith X(제니스X) / Z-ERP &nbsp;·&nbsp; <b>계약유형</b> 신규·전환(경쟁사)·업셀·갱신·추가라이선스 &nbsp;·&nbsp; <b>채널</b> 직판·엔디·엔토·세무사무소 추천',
+  cols:[
+    {f:'product',h:'제품',t:T.sel,o:['','K-ERP','Y-ERP','Zenith X','Z-ERP'],w:88},
+    {f:'customer',h:'고객사',t:T.text,w:130,key:true},
+    {f:'industry',h:'업종',t:T.text,w:80},
+    {f:'ctype',h:'계약유형',t:T.sel,o:['','신규','전환','업셀','갱신','추가라이선스'],w:92},
+    {f:'size',h:'사용자/사업장',t:T.text,w:82,ctr:true},
+    {f:'amount',h:'계약금액<br>(만원)',t:T.num,w:82,sum:true},
+    {f:'monthly',h:'월정액/유지<br>(만원)',t:T.num,w:82,sum:true},
+    {f:'cdate',h:'계약일',t:T.date,w:112},
+    {f:'owner',h:'담당',t:T.text,w:66,ctr:true},
+    {f:'channel',h:'채널',t:T.sel,o:['','직판','엔디','엔토','세무사무소'],w:86},
+    {f:'prev',h:'전 사용 솔루션',t:T.text,w:100},
+    {f:'note',h:'비고 (결정요인·특이사항)',t:T.area,w:180}
+  ]
+},
+{
+  key:'sources', no:2, title:'금주 소스 발굴사항', hint:'신규 확보 영업기회(리드)',
+  legend:'<b>확도</b> A=1개월 내 계약 유력 / B=3개월 내 검토 / C=중장기 관심 &nbsp;·&nbsp; 상담 시 <b>관리법인 수 확인 필수</b>(11개 이상이면 가격 포지션 재검토)',
+  cols:[
+    {f:'fdate',h:'발굴일',t:T.date,w:112},
+    {f:'company',h:'업체명',t:T.text,w:130,key:true},
+    {f:'scale',h:'업종/규모',t:T.text,w:88},
+    {f:'path',h:'발굴 경로',t:T.sel,o:['','세무사무소 추천','기존고객 소개','엔디/엔토 파트너','인바운드','아웃바운드 콜','세미나/전시회','웨비나','온라인 광고'],w:130},
+    {f:'keyman',h:'Key-man (직위)',t:T.text,w:104},
+    {f:'product',h:'관심 제품',t:T.sel,o:['','K-ERP','Y-ERP','Zenith X','Z-ERP','미정'],w:88},
+    {f:'amount',h:'예상 금액<br>(만원)',t:T.num,w:82,sum:true},
+    {f:'grade',h:'확도',t:T.sel,o:['','A','B','C'],w:58,ctr:true},
+    {f:'owner',h:'담당',t:T.text,w:66,ctr:true},
+    {f:'pain',h:'Pain-point / 발굴 배경',t:T.area,w:180},
+    {f:'next',h:'다음 액션 (일자)',t:T.area,w:150}
+  ],
+  extraFoot:(rows)=>{
+    const g=x=>rows.filter(r=>r.grade===x).length;
+    return `A ${g('A')}건 / B ${g('B')}건 / C ${g('C')}건`;
+  }
+},
+{
+  key:'outbound', no:3, title:'금주 아웃바운딩 현황', hint:'담당자별 활동량 및 전환 효율',
+  legend:'<b>거절 사유 분류</b> 가격 · 시기(계약 잔여기간) · 전환 부담(데이터 이관) · 담당 세무사무소 반대 · 기능 미흡 · 무응답 — 사유별 건수를 함께 표기',
+  cols:[
+    {f:'owner',h:'담당',t:T.text,w:80,ctr:true,key:true},
+    {f:'list',h:'대상 리스트 (출처/세그먼트)',t:T.text,w:150},
+    {f:'calls',h:'시도<br>콜',t:T.num,w:56,sum:true},
+    {f:'conn',h:'유효<br>통화',t:T.num,w:56,sum:true},
+    {f:'rate',h:'통화율',t:'calc',w:60,calc:r=>pct(r.conn,r.calls)},
+    {f:'mail',h:'메일<br>/DM',t:T.num,w:56,sum:true},
+    {f:'appt',h:'상담<br>약속',t:T.num,w:56,sum:true},
+    {f:'crate',h:'미팅<br>전환율',t:'calc',w:62,calc:r=>pct(r.appt,r.conn)},
+    {f:'rej',h:'거절<br>/보류',t:T.num,w:56,sum:true},
+    {f:'reason',h:'주요 거절 사유 · 인사이트',t:T.area,w:230}
+  ]
+},
+{
+  key:'visits', no:4, title:'금주 방문 상담이력', hint:'대면·온라인 데모 포함 · 1건 1행',
+  legend:'<b>구분</b> 초도방문·데모/시연·견적제시·클로징·사후관리 &nbsp;·&nbsp; 경쟁 상황(더존 위하고/싱글팩, 영림원 등) 확인 시 상담내용에 반드시 병기',
+  cols:[
+    {f:'vdate',h:'일자',t:T.date,w:112},
+    {f:'company',h:'고객사',t:T.text,w:130,key:true},
+    {f:'attend',h:'고객측 참석자',t:T.text,w:100},
+    {f:'visitor',h:'방문자',t:T.text,w:76,ctr:true},
+    {f:'vtype',h:'구분',t:T.sel,o:['','초도방문','데모/시연','견적제시','클로징','사후관리'],w:92},
+    {f:'product',h:'제안 제품/규모',t:T.text,w:100},
+    {f:'quote',h:'견적금액<br>(만원)',t:T.num,w:78,sum:true},
+    {f:'summary',h:'상담 내용 요약 · 고객 반응',t:T.area,w:230},
+    {f:'issue',h:'이슈 / 요청사항',t:T.area,w:150},
+    {f:'next',h:'Next Step (기한)',t:T.area,w:140}
+  ]
+},
+{
+  key:'marketing', no:5, title:'금주 마케팅 진행사항', hint:'캠페인·콘텐츠·채널 활동 및 리드 성과',
+  legend:'<b>채널</b> 웨비나·세미나·검색광고·SNS·이메일/DM·뉴스레터·블로그·파트너 공동마케팅·전시회 &nbsp;·&nbsp; 경쟁사 가격 인용은 <b>근거자료(청구서 등) 확보 후에만</b> 대외 사용',
+  cols:[
+    {f:'name',h:'캠페인 / 활동명',t:T.text,w:150,key:true},
+    {f:'channel',h:'채널',t:T.sel,o:['','웨비나','세미나','검색광고','SNS','이메일/DM','뉴스레터','블로그/콘텐츠','파트너 공동','전시회'],w:110},
+    {f:'period',h:'기간',t:T.text,w:100,ctr:true},
+    {f:'imp',h:'노출/발송',t:T.num,w:72,sum:true},
+    {f:'eng',h:'반응<br>(클릭·참여)',t:T.num,w:72,sum:true},
+    {f:'leads',h:'리드<br>획득',t:T.num,w:62,sum:true},
+    {f:'meet',h:'상담<br>연결',t:T.num,w:62,sum:true},
+    {f:'cost',h:'집행 비용<br>(만원)',t:T.num,w:82,sum:true},
+    {f:'cpl',h:'건당 CPL',t:'calc',w:72,calc:r=>div(r.cost,r.leads)},
+    {f:'status',h:'진행 상태 · 다음 단계',t:T.area,w:200}
+  ]
+},
+{
+  key:'issues', no:6, title:'이슈 · 의사결정 요청사항', hint:'TFT 자체 해결 불가 항목만',
+  legend:'<b>구분</b> 가격/할인 승인 · 제품 기능 · 개발 일정 · 채널 정책 · 인력/조직 · 계약 조건 · 기타',
+  cols:[
+    {f:'cat',h:'구분',t:T.sel,o:['','가격/할인 승인','제품 기능','개발 일정','채널 정책','인력/조직','계약 조건','기타'],w:120},
+    {f:'content',h:'내용 (배경 · 영향)',t:T.area,w:300,key:true},
+    {f:'request',h:'요청 사항 / 대안',t:T.area,w:220},
+    {f:'dm',h:'결정권자',t:T.text,w:90,ctr:true},
+    {f:'due',h:'요청 기한',t:T.date,w:112}
+  ]
+},
+{
+  key:'actions', no:7, title:'차주 실행계획 (Action Item)', hint:'전 회차 미완료 항목은 상단에 이월 기재',
+  legend:'',
+  cols:[
+    {f:'task',h:'실행 과제',t:T.area,w:300,key:true},
+    {f:'owner',h:'담당',t:T.text,w:80,ctr:true},
+    {f:'due',h:'기한',t:T.date,w:112},
+    {f:'status',h:'상태',t:T.sel,o:['','진행','완료','지연','보류'],w:82},
+    {f:'note',h:'비고 (지연 사유 등)',t:T.area,w:220}
+  ]
+}
+];
+
+/* ─────────── 유틸 ─────────── */
+const $=s=>document.querySelector(s);
+const num=v=>{const n=parseFloat(String(v??'').replace(/[^0-9.\-]/g,''));return isNaN(n)?0:n;};
+const fmt=n=>n?n.toLocaleString('ko-KR',{maximumFractionDigits:1}):'0';
+const pct=(a,b)=>{a=num(a);b=num(b);return b?Math.round(a/b*1000)/10+'%':'–';};
+const div=(a,b)=>{a=num(a);b=num(b);return b?fmt(Math.round(a/b*10)/10):'–';};
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ─────────── 렌더링 ─────────── */
+function buildSections(){
+  const host=$('#sections');
+  SCHEMA.forEach(sec=>{
+    const el=document.createElement('section');
+    el.innerHTML=`
+      <div class="sec-title">
+        <span class="sec-no">${sec.no}</span><h2>${sec.title}</h2>
+        <span class="hint">${sec.hint||''}</span>
+        <span class="add noprint"><button class="add-btn" data-add="${sec.key}">＋ 행 추가</button></span>
+      </div>
+      <div class="scroll">
+        <table class="grid" id="tb_${sec.key}">
+          <thead><tr>${sec.cols.map(c=>`<th style="min-width:${c.w}px">${c.h}</th>`).join('')}<th class="noprint" style="min-width:30px"></th></tr></thead>
+          <tbody></tbody>
+          <tfoot><tr id="ft_${sec.key}"></tr></tfoot>
+        </table>
+      </div>
+      ${sec.legend?`<p class="legend">${sec.legend}</p>`:''}`;
+    host.appendChild(el);
+  });
+  document.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>{addRow(b.dataset.add);recalc();});
+}
+
+function cellHTML(c,v){
+  v=esc(v||'');
+  if(c.t==='calc') return `<td class="calc" data-f="${c.f}">–</td>`;
+  const cls=(c.t===T.num?'num':(c.ctr?'ctr':''));
+  if(c.t===T.sel) return `<td class="${cls}"><select data-f="${c.f}">${c.o.map(o=>`<option ${o===v?'selected':''}>${esc(o)}</option>`).join('')}</select></td>`;
+  if(c.t===T.area) return `<td><textarea data-f="${c.f}" rows="1">${v}</textarea></td>`;
+  if(c.t===T.date) return `<td class="ctr"><input type="date" data-f="${c.f}" value="${v}"></td>`;
+  if(c.t===T.num) return `<td class="num"><input data-f="${c.f}" inputmode="decimal" value="${v}"></td>`;
+  return `<td class="${cls}"><input data-f="${c.f}" value="${v}"></td>`;
+}
+
+function addRow(key,data){
+  const sec=SCHEMA.find(s=>s.key===key);
+  const tb=document.querySelector('#tb_'+key+' tbody');
+  const tr=document.createElement('tr');
+  tr.innerHTML=sec.cols.map(c=>cellHTML(c,data?data[c.f]:'')).join('')
+    +`<td class="noprint" style="text-align:center"><button class="del" title="행 삭제">×</button></td>`;
+  tr.querySelector('.del').onclick=()=>{tr.remove();recalc();markDirty();};
+  tr.querySelectorAll('textarea').forEach(a=>{autoGrow(a);a.addEventListener('input',()=>autoGrow(a));});
+  tb.appendChild(tr);
+  return tr;
+}
+function autoGrow(a){a.style.height='auto';a.style.height=Math.max(30,a.scrollHeight)+'px';}
+
+/* ─────────── 수집 / 주입 ─────────── */
+function readTable(key){
+  const sec=SCHEMA.find(s=>s.key===key);
+  return [...document.querySelectorAll('#tb_'+key+' tbody tr')].map(tr=>{
+    const o={};
+    sec.cols.forEach(c=>{ if(c.t==='calc')return; const el=tr.querySelector(`[data-f="${c.f}"]`); o[c.f]=el?el.value:''; });
+    return o;
+  });
+}
+function collect(){
+  const d={meta:{},etc:$('#m_etc').value};
+  ['round','date','day','time','place','host','writer','att','abs'].forEach(k=>d.meta[k]=$('#m_'+k).value);
+  SCHEMA.forEach(s=>d[s.key]=readTable(s.key));
+  return d;
+}
+function hydrate(d){
+  ['round','date','day','time','place','host','writer','att','abs'].forEach(k=>$('#m_'+k).value=(d.meta&&d.meta[k])||'');
+  $('#m_etc').value=d.etc||'';
+  SCHEMA.forEach(s=>{
+    document.querySelector('#tb_'+s.key+' tbody').innerHTML='';
+    const rows=(d[s.key]&&d[s.key].length)?d[s.key]:[{},{},{}];
+    rows.forEach(r=>addRow(s.key,r));
+  });
+  recalc();
+}
+
+/* ─────────── 집계 ─────────── */
+function recalc(){
+  SCHEMA.forEach(sec=>{
+    const rows=readTable(sec.key);
+    // 계산 컬럼
+    [...document.querySelectorAll('#tb_'+sec.key+' tbody tr')].forEach((tr,i)=>{
+      sec.cols.filter(c=>c.t==='calc').forEach(c=>{
+        const td=tr.querySelector(`[data-f="${c.f}"]`); if(td) td.textContent=c.calc(rows[i]);
+      });
+    });
+    // 합계행
+    const ft=$('#ft_'+sec.key); let html='';
+    const keyCol=sec.cols.find(c=>c.key);
+    const filled=rows.filter(r=>keyCol?String(r[keyCol.f]||'').trim():false).length;
+    let first=true;
+    sec.cols.forEach(c=>{
+      if(first){ html+=`<td style="text-align:left;padding-left:9px">합계 · ${filled}건</td>`; first=false; return; }
+      if(c.sum){ html+=`<td class="r">${fmt(rows.reduce((a,r)=>a+num(r[c.f]),0))}</td>`; }
+      else html+='<td></td>';
+    });
+    html+='<td class="noprint"></td>';
+    ft.innerHTML=html;
+    if(sec.extraFoot){
+      const tds=ft.querySelectorAll('td');
+      tds[tds.length-2].innerHTML=`<span style="font-weight:600;color:var(--g1)">${sec.extraFoot(rows)}</span>`;
+    }
+  });
+  scoreboard();
+}
+function scoreboard(){
+  const c=readTable('contracts'), s=readTable('sources'), o=readTable('outbound'), v=readTable('visits'), m=readTable('marketing');
+  const cn=c.filter(r=>r.customer.trim()).length, camt=c.reduce((a,r)=>a+num(r.amount),0);
+  const sn=s.filter(r=>r.company.trim()).length, samt=s.reduce((a,r)=>a+num(r.amount),0);
+  const sa=s.filter(r=>r.grade==='A').length;
+  const calls=o.reduce((a,r)=>a+num(r.calls),0), conn=o.reduce((a,r)=>a+num(r.conn),0), appt=o.reduce((a,r)=>a+num(r.appt),0);
+  const vn=v.filter(r=>r.company.trim()).length, vnew=v.filter(r=>r.vtype==='초도방문').length, vq=v.reduce((a,r)=>a+num(r.quote),0);
+  const ml=m.reduce((a,r)=>a+num(r.leads),0), mm=m.reduce((a,r)=>a+num(r.meet),0), mc=m.reduce((a,r)=>a+num(r.cost),0);
+  const card=(k,val,unit,d)=>`<div class="card"><div class="k">${k}</div><div class="v">${val}<span class="u">${unit}</span></div><div class="d">${d}</div></div>`;
+  $('#score').innerHTML=
+    card('계약 확정',cn,`건 · ${fmt(camt)}만원`,'날인 완료 기준')+
+    card('신규 소스 발굴',sn,'건',`예상 ${fmt(samt)}만원 · A확도 ${sa}건`)+
+    card('아웃바운드 콜',fmt(calls),'콜',`유효 ${fmt(conn)} · 미팅 ${fmt(appt)} (${pct(appt,conn)})`)+
+    card('방문 상담',vn,'건',`초도 ${vnew} · 견적 ${fmt(vq)}만원`)+
+    card('마케팅 리드',fmt(ml),'건',`상담연결 ${fmt(mm)} · 비용 ${fmt(mc)}만원`);
+}
+
+/* ─────────── Supabase 설정 (★ 여기 두 줄만 본인 값으로 교체) ─────────── */
+const SUPABASE_URL='sb_publishable_k5RgqEQYvsUyruiZd9boYw_D67w_7KJL';
+const SUPABASE_ANON_KEY='https://ikqcxhmawxmufnmykfuh.supabase.co/rest/v1/';
+
+/* ─────────── 저장소 (Supabase DB) ─────────── */
+const TBL='tft_reports';
+let currentId=null, dirty=false, sb=null, me=null;
+
+function sbReady(){ return SUPABASE_URL.startsWith('https://') && (SUPABASE_ANON_KEY.startsWith('sb_publishable_') || SUPABASE_ANON_KEY.length>50); }
+
+function setStatus(msg,cls){ const e=$('#status'); e.textContent=msg; e.className='status '+(cls||''); }
+function markDirty(){ dirty=true; setStatus('저장되지 않은 변경'); }
+
+async function getIndex(){
+  const {data,error}=await sb.from(TBL).select('id,date,day,round,n,saved_at');
+  if(error){ console.error('[getIndex]',error); setStatus('목록 조회 실패','err'); return []; }
+  return (data||[]).map(r=>({id:r.id,date:r.date,day:r.day,round:r.round,n:r.n,savedAt:r.saved_at}));
+}
+
+/* ─────────── 인증 ─────────── */
+let authMode='login';
+function authUi(){
+  const isL=authMode==='login';
+  $('#authBtn').textContent=isL?'로그인':'회원가입';
+  $('#authSub').textContent='주간 회의 보고서 시스템 · '+(isL?'로그인':'회원가입');
+  $('#authToggle').innerHTML=isL
+    ? '계정이 없나요? <a id="authSwitch">회원가입</a>'
+    : '이미 계정이 있나요? <a id="authSwitch">로그인</a>';
+  $('#authSwitch').onclick=()=>{ authMode=isL?'signup':'login'; $('#authMsg').textContent=''; authUi(); };
+}
+function authMsg(t,ok){ const e=$('#authMsg'); e.textContent=t; e.className='auth-msg'+(ok?' ok':''); }
+
+async function doAuth(){
+  const email=$('#authEmail').value.trim(), pw=$('#authPw').value;
+  if(!email||!pw){ authMsg('이메일과 비밀번호를 입력해 주세요.'); return; }
+  if(pw.length<6){ authMsg('비밀번호는 6자 이상이어야 합니다.'); return; }
+  const btn=$('#authBtn'); btn.disabled=true; authMsg(authMode==='login'?'로그인 중…':'가입 중…',true);
+  try{
+    if(authMode==='login'){
+      const {error}=await sb.auth.signInWithPassword({email,password:pw});
+      if(error) throw error;
+    }else{
+      const {data,error}=await sb.auth.signUp({email,password:pw});
+      if(error) throw error;
+      if(data.session===null){ authMsg('가입 완료! 메일함에서 인증 링크를 눌러 주세요.',true); btn.disabled=false; return; }
+    }
+  }catch(e){
+    console.error('[auth]',e);
+    const m=String(e.message||'');
+    if(m.includes('Invalid login')) authMsg('이메일 또는 비밀번호가 올바르지 않습니다.');
+    else if(m.includes('already registered')) authMsg('이미 가입된 이메일입니다. 로그인해 주세요.');
+    else if(m.includes('rate limit')) authMsg('요청이 많습니다. 잠시 후 다시 시도해 주세요.');
+    else authMsg('실패: '+m);
+    btn.disabled=false;
+  }
+}
+
+async function onLogin(session){
+  me=session.user;
+  $('#authOverlay').style.display='none';
+  $('#userBadge').textContent=me.email;
+  $('#btnLogout').style.display='';
+  await refreshList();
+  setStatus('로그인됨 · DB 연결 완료','ok');
+}
+function onLogout(){
+  me=null;
+  $('#authOverlay').style.display='flex';
+  $('#userBadge').textContent='';
+  $('#btnLogout').style.display='none';
+  $('#authBtn').disabled=false; $('#authPw').value='';
+  authMsg('');
+}
+
+function initAuth(){
+  if(!sbReady()){
+    $('#authTitle').textContent='설정이 필요합니다';
+    $('#authSub').textContent='index.html 안의 SUPABASE_URL / SUPABASE_ANON_KEY 두 줄을 본인 값으로 교체해 주세요.';
+    document.querySelectorAll('#authEmail,#authPw,#authBtn').forEach(e=>e.disabled=true);
+    return;
+  }
+  sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+  authUi();
+  $('#authBtn').onclick=doAuth;
+  $('#authPw').addEventListener('keydown',e=>{ if(e.key==='Enter') doAuth(); });
+  $('#btnLogout').onclick=async()=>{ if(dirty&&!confirm('저장하지 않은 변경사항이 있습니다. 로그아웃할까요?'))return; await sb.auth.signOut(); };
+  sb.auth.onAuthStateChange((ev,session)=>{
+    if(session) onLogin(session); else onLogout();
+  });
+}
+
+async function refreshList(){
+  const list=await getIndex();
+  list.sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  const sel=$('#loadSel');
+  sel.innerHTML='<option value="">— 저장된 회의 불러오기 —</option>'+
+    list.map(r=>`<option value="${r.id}" ${r.id===currentId?'selected':''}>${esc(r.date||'날짜미정')} (${esc(r.day||'')}) ${esc(r.round||'')} — 계약 ${r.n||0}건</option>`).join('');
+}
+
+async function save(){
+  const d=collect();
+  if(!d.meta.date){ alert('회의 일자를 먼저 입력해 주세요.'); $('#m_date').focus(); return; }
+  if(!me){ alert('로그인 후 저장할 수 있습니다.'); return; }
+  const id='r_'+d.meta.date+'_'+(d.meta.day||'x');
+  d.savedAt=new Date().toISOString();
+  try{
+    setStatus('저장 중…');
+    const row={
+      id, date:d.meta.date, day:d.meta.day||'', round:d.meta.round||'',
+      n:d.contracts.filter(r=>r.customer.trim()).length,
+      data:d, saved_at:d.savedAt, updated_by:me.email
+    };
+    const {error}=await sb.from(TBL).upsert(row);
+    if(error) throw error;
+    currentId=id; dirty=false;
+    await refreshList();
+    setStatus('저장 완료 · '+new Date().toLocaleTimeString('ko-KR')+' · '+me.email,'ok');
+  }catch(e){ setStatus('저장 실패 — 다시 시도해 주세요','err'); console.error('[save]',e); }
+}
+
+async function load(id){
+  if(dirty && !confirm('저장하지 않은 변경사항이 있습니다. 이동할까요?')) { $('#loadSel').value=currentId||''; return; }
+  try{
+    setStatus('불러오는 중…');
+    const {data,error}=await sb.from(TBL).select('data,updated_by').eq('id',id).maybeSingle();
+    if(error) throw error;
+    if(!data){ setStatus('해당 보고서를 찾을 수 없습니다','err'); return; }
+    hydrate(data.data); currentId=id; dirty=false;
+    setStatus('불러옴'+(data.updated_by?' · 최종 작성: '+data.updated_by:''),'ok');
+  }catch(e){ setStatus('불러오기 실패','err'); console.error('[load]',e); }
+}
+
+async function removeCurrent(){
+  if(!currentId){ alert('삭제할 저장 보고서가 선택되지 않았습니다.'); return; }
+  if(!confirm('이 회차 보고서를 삭제합니다. 되돌릴 수 없습니다.')) return;
+  try{
+    const {error}=await sb.from(TBL).delete().eq('id',currentId);
+    if(error) throw error;
+    currentId=null; await refreshList(); newReport(); setStatus('삭제됨','ok');
+  }catch(e){ setStatus('삭제 실패','err'); console.error('[delete]',e); }
+}
+
+function newReport(){
+  const d={meta:{day:'화',date:new Date().toISOString().slice(0,10)},etc:''};
+  hydrate(d); currentId=null; dirty=false; $('#loadSel').value='';
+  setStatus('새 보고서');
+}
+
+/* CSV */
+function csv(){
+  const d=collect(); const q=s=>'"'+String(s??'').replace(/"/g,'""')+'"';
+  let out='회의일자,'+q(d.meta.date)+',요일,'+q(d.meta.day)+',회차,'+q(d.meta.round)+'\n\n';
+  SCHEMA.forEach(s=>{
+    out+=s.no+'. '+s.title+'\n';
+    out+=s.cols.filter(c=>c.t!=='calc').map(c=>q(c.h.replace(/<br>/g,' '))).join(',')+'\n';
+    d[s.key].forEach(r=>{ out+=s.cols.filter(c=>c.t!=='calc').map(c=>q(r[c.f])).join(',')+'\n'; });
+    out+='\n';
+  });
+  const blob=new Blob(['\uFEFF'+out],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`TFT회의보고서_${d.meta.date||'미정'}_${d.meta.day||''}.csv`;
+  a.click();
+}
+
+/* ─────────── 초기화 ─────────── */
+buildSections();
+newReport();
+document.addEventListener('input',e=>{
+  if(e.target.closest('.bar')) return;
+  markDirty(); recalc();
+});
+document.addEventListener('change',e=>{ if(!e.target.closest('.bar')){markDirty();recalc();} });
+$('#btnSave').onclick=save;
+$('#btnNew').onclick=()=>{ if(dirty&&!confirm('저장하지 않은 변경사항이 있습니다. 새로 작성할까요?'))return; newReport(); };
+$('#btnDel').onclick=removeCurrent;
+$('#btnPrint').onclick=()=>window.print();
+$('#btnCsv').onclick=csv;
+$('#loadSel').onchange=e=>{ if(e.target.value) load(e.target.value); };
+window.addEventListener('beforeunload',e=>{ if(dirty){e.preventDefault();e.returnValue='';} });
+setInterval(()=>{ if(dirty&&currentId&&me) save(); },60000);  // 1분 자동저장(저장 이력 있는 회차만)
+initAuth();  // 로그인 성공 시 onLogin()에서 refreshList() 실행
+</script>
+</body>
+</html>
