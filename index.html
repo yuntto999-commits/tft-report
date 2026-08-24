@@ -124,6 +124,10 @@
   <div class="auth-box">
     <h2 id="authTitle">ERP영업 활성화 TFT</h2>
     <div class="sub" id="authSub">주간 회의 보고서 시스템 · 로그인</div>
+    <div id="nameRow" style="display:none">
+      <label>이름</label>
+      <input type="text" id="authName" placeholder="홍길동" autocomplete="name" maxlength="20">
+    </div>
     <label>이메일</label>
     <input type="email" id="authEmail" placeholder="name@newzensol.com" autocomplete="username">
     <label>비밀번호</label>
@@ -470,6 +474,7 @@ async function getIndex(){
 let authMode='login';
 function authUi(){
   const isL=authMode==='login';
+  $('#nameRow').style.display=isL?'none':'block';
   $('#authBtn').textContent=isL?'로그인':'회원가입';
   $('#authSub').textContent='주간 회의 보고서 시스템 · '+(isL?'로그인':'회원가입');
   $('#authToggle').innerHTML=isL
@@ -480,16 +485,17 @@ function authUi(){
 function authMsg(t,ok){ const e=$('#authMsg'); e.textContent=t; e.className='auth-msg'+(ok?' ok':''); }
 
 async function doAuth(){
-  const email=$('#authEmail').value.trim(), pw=$('#authPw').value;
+  const email=$('#authEmail').value.trim(), pw=$('#authPw').value, name=$('#authName').value.trim();
   if(!email||!pw){ authMsg('이메일과 비밀번호를 입력해 주세요.'); return; }
   if(pw.length<6){ authMsg('비밀번호는 6자 이상이어야 합니다.'); return; }
+  if(authMode==='signup'&&!name){ authMsg('이름을 입력해 주세요.'); $('#authName').focus(); return; }
   const btn=$('#authBtn'); btn.disabled=true; authMsg(authMode==='login'?'로그인 중…':'가입 중…',true);
   try{
     if(authMode==='login'){
       const {error}=await sb.auth.signInWithPassword({email,password:pw});
       if(error) throw error;
     }else{
-      const {data,error}=await sb.auth.signUp({email,password:pw});
+      const {data,error}=await sb.auth.signUp({email,password:pw,options:{data:{name}}});
       if(error) throw error;
       if(data.session===null){ authMsg('가입 완료! 메일함에서 인증 링크를 눌러 주세요.',true); btn.disabled=false; return; }
     }
@@ -506,8 +512,17 @@ async function doAuth(){
 
 async function onLogin(session){
   me=session.user;
+  let name=(me.user_metadata&&me.user_metadata.name||'').trim();
+  if(!name){  // 이름 없이 가입된 기존 계정 → 최초 1회 이름 등록
+    name=(prompt('보고서에 표시할 이름을 입력해 주세요. (예: 홍길동)')||'').trim();
+    if(name){
+      try{ const {data}=await sb.auth.updateUser({data:{name}}); if(data&&data.user) me=data.user; }
+      catch(e){ console.error('[updateUser]',e); }
+    }
+  }
+  me.dispName=name||me.email;
   $('#authOverlay').style.display='none';
-  $('#userBadge').textContent=me.email;
+  $('#userBadge').textContent=name?name+' · '+me.email:me.email;
   $('#btnLogout').style.display='';
   await refreshList();
   setStatus('로그인됨 · DB 연결 완료','ok');
@@ -557,13 +572,14 @@ async function save(){
     const row={
       id, date:d.meta.date, day:d.meta.day||'', round:d.meta.round||'',
       n:d.contracts.filter(r=>r.customer.trim()).length,
-      data:d, saved_at:d.savedAt, updated_by:me.email
+      data:d, saved_at:d.savedAt,
+      updated_by:(me.dispName&&me.dispName!==me.email)?me.dispName+' ('+me.email+')':me.email
     };
     const {error}=await sb.from(TBL).upsert(row);
     if(error) throw error;
     currentId=id; dirty=false;
     await refreshList();
-    setStatus('저장 완료 · '+new Date().toLocaleTimeString('ko-KR')+' · '+me.email,'ok');
+    setStatus('저장 완료 · '+new Date().toLocaleTimeString('ko-KR')+' · '+(me.dispName||me.email),'ok');
   }catch(e){ setStatus('저장 실패 — 다시 시도해 주세요','err'); console.error('[save]',e); }
 }
 
