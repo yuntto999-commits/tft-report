@@ -328,6 +328,29 @@ const SCHEMA = [
 const $=s=>document.querySelector(s);
 const num=v=>{const n=parseFloat(String(v??'').replace(/[^0-9.\-]/g,''));return isNaN(n)?0:n;};
 const fmt=n=>n?n.toLocaleString('ko-KR',{maximumFractionDigits:1}):'0';
+
+/* 숫자칸 입력 시 천 단위 쉼표 자동 표기 (커서 위치 유지) */
+function fmtNumInput(el){
+  const raw=el.value;
+  if(raw==='')return;
+  const focused=document.activeElement===el;
+  const digitsBefore=focused?raw.slice(0,el.selectionStart).replace(/[^0-9]/g,'').length:0;
+  let s=raw.replace(/[^0-9.\-]/g,'');
+  const neg=s.startsWith('-')?'-':'';
+  s=s.replace(/-/g,'');
+  const parts=s.split('.');
+  const intPart=(parts[0]||'').replace(/^0+(?=\d)/,'');
+  const decPart=parts.length>1?'.'+parts.slice(1).join(''):'';
+  const out=neg+intPart.replace(/\B(?=(\d{3})+(?!\d))/g,',')+decPart;
+  if(out===raw)return;
+  el.value=out;
+  if(focused){
+    let pos=0,cnt=0;
+    while(pos<out.length&&cnt<digitsBefore){ if(/[0-9]/.test(out[pos]))cnt++; pos++; }
+    el.setSelectionRange(pos,pos);
+  }
+}
+document.addEventListener('input',e=>{ if(e.target.matches&&e.target.matches('td.num input')) fmtNumInput(e.target); });
 const pct=(a,b)=>{a=num(a);b=num(b);return b?Math.round(a/b*1000)/10+'%':'–';};
 const div=(a,b)=>{a=num(a);b=num(b);return b?fmt(Math.round(a/b*10)/10):'–';};
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -375,6 +398,7 @@ function addRow(key,data){
     +`<td class="noprint" style="text-align:center"><button class="del" title="행 삭제">×</button></td>`;
   tr.querySelector('.del').onclick=()=>{tr.remove();recalc();markDirty();};
   tr.querySelectorAll('textarea').forEach(a=>{autoGrow(a);a.addEventListener('input',()=>autoGrow(a));});
+  tr.querySelectorAll('td.num input').forEach(i=>fmtNumInput(i));
   tb.appendChild(tr);
   return tr;
 }
