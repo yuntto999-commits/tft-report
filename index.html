@@ -620,7 +620,6 @@ function applyLockUi(){
   // 본문(.wrap) 안의 모든 입력칸 잠금/해제 — 툴바의 불러오기 선택은 유지
   document.querySelectorAll('.wrap input, .wrap textarea, .wrap select, .wrap .add-btn, .wrap .del')
     .forEach(el=>{ el.disabled=curClosed; });
-  document.querySelector('.wrap').style.opacity=curClosed?'0.72':'1';
   const bc=$('#btnClose');
   bc.style.display=(isAdmin()&&currentId)?'':'none';
   bc.textContent=curClosed?'🔓 마감 해제':'🔒 마감';
