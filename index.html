@@ -156,7 +156,7 @@
 <div class="wrap">
   <div class="top"></div>
   <div class="head">
-    <div class="eyebrow">NEWGEN SOLUTION · 전략기술사업그룹</div>
+    <div class="eyebrow">NEWZEN SOLUTION</div>
     <h1>ERP영업 활성화 TFT 주간 회의 보고서</h1>
     <div class="sub">매주 화 · 목 정기 개최 &nbsp;|&nbsp; 화요일 = 주중 진행점검 · 목요일 = 주간 마감보고</div>
   </div>
@@ -617,6 +617,10 @@ async function removeCurrent(){
 function applyLockUi(){
   $('#btnSave').disabled=curClosed;
   $('#btnDel').disabled=curClosed;
+  // 본문(.wrap) 안의 모든 입력칸 잠금/해제 — 툴바의 불러오기 선택은 유지
+  document.querySelectorAll('.wrap input, .wrap textarea, .wrap select, .wrap .add-btn, .wrap .del')
+    .forEach(el=>{ el.disabled=curClosed; });
+  document.querySelector('.wrap').style.opacity=curClosed?'0.72':'1';
   const bc=$('#btnClose');
   bc.style.display=(isAdmin()&&currentId)?'':'none';
   bc.textContent=curClosed?'🔓 마감 해제':'🔒 마감';
