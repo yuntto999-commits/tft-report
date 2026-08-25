@@ -289,6 +289,7 @@ const SCHEMA = [
   legend:'<b>채널</b> 웨비나·세미나·검색광고·SNS·이메일/DM·뉴스레터·블로그·파트너 공동마케팅·전시회 &nbsp;·&nbsp; 경쟁사 가격 인용은 <b>근거자료(청구서 등) 확보 후에만</b> 대외 사용',
   cols:[
     {f:'name',h:'캠페인 / 활동명',t:T.text,w:150,key:true},
+    {f:'owner',h:'담당',t:T.text,w:64,ctr:true},
     {f:'channel',h:'채널',t:T.sel,o:['','웨비나','세미나','검색광고','SNS','이메일/DM','뉴스레터','블로그/콘텐츠','파트너 공동','전시회'],w:110},
     {f:'period',h:'기간',t:T.text,w:100,ctr:true},
     {f:'imp',h:'노출/발송',t:T.num,w:72,sum:true},
