@@ -222,8 +222,8 @@ const SCHEMA = [
     {f:'industry',h:'업종',t:T.text,w:80},
     {f:'ctype',h:'계약유형',t:T.sel,o:['','신규','전환','업셀','갱신','추가라이선스'],w:92},
     {f:'size',h:'사용자/사업장',t:T.text,w:82,ctr:true},
-    {f:'amount',h:'계약금액<br>(만원)',t:T.num,w:82,sum:true},
-    {f:'monthly',h:'월정액/유지<br>(만원)',t:T.num,w:82,sum:true},
+    {f:'amount',h:'계약금액',t:T.num,w:82,sum:true},
+    {f:'monthly',h:'월정액/유지',t:T.num,w:82,sum:true},
     {f:'cdate',h:'계약일',t:T.date,w:112},
     {f:'owner',h:'담당',t:T.text,w:66,ctr:true},
     {f:'channel',h:'채널',t:T.sel,o:['','직판','엔디','엔토','세무사무소'],w:86},
@@ -241,7 +241,7 @@ const SCHEMA = [
     {f:'path',h:'발굴 경로',t:T.sel,o:['','세무사무소 추천','기존고객 소개','엔디/엔토 파트너','인바운드','아웃바운드 콜','세미나/전시회','웨비나','온라인 광고'],w:130},
     {f:'keyman',h:'Key-man (직위)',t:T.text,w:104},
     {f:'product',h:'관심 제품',t:T.sel,o:['','K-ERP','Y-ERP','Zenith X','Z-ERP','미정'],w:88},
-    {f:'amount',h:'예상 금액<br>(만원)',t:T.num,w:82,sum:true},
+    {f:'amount',h:'예상 금액',t:T.num,w:82,sum:true},
     {f:'grade',h:'확도',t:T.sel,o:['','A','B','C'],w:58,ctr:true},
     {f:'owner',h:'담당',t:T.text,w:66,ctr:true},
     {f:'pain',h:'Pain-point / 발굴 배경',t:T.area,w:180},
@@ -278,7 +278,7 @@ const SCHEMA = [
     {f:'visitor',h:'방문자',t:T.text,w:76,ctr:true},
     {f:'vtype',h:'구분',t:T.sel,o:['','초도방문','데모/시연','견적제시','클로징','사후관리'],w:92},
     {f:'product',h:'제안 제품/규모',t:T.text,w:100},
-    {f:'quote',h:'견적금액<br>(만원)',t:T.num,w:78,sum:true},
+    {f:'quote',h:'견적금액',t:T.num,w:78,sum:true},
     {f:'summary',h:'상담 내용 요약 · 고객 반응',t:T.area,w:230},
     {f:'issue',h:'이슈 / 요청사항',t:T.area,w:150},
     {f:'next',h:'Next Step (기한)',t:T.area,w:140}
@@ -296,7 +296,7 @@ const SCHEMA = [
     {f:'eng',h:'반응<br>(클릭·참여)',t:T.num,w:72,sum:true},
     {f:'leads',h:'리드<br>획득',t:T.num,w:62,sum:true},
     {f:'meet',h:'상담<br>연결',t:T.num,w:62,sum:true},
-    {f:'cost',h:'집행 비용<br>(만원)',t:T.num,w:82,sum:true},
+    {f:'cost',h:'집행 비용',t:T.num,w:82,sum:true},
     {f:'cpl',h:'건당 CPL',t:'calc',w:72,calc:r=>div(r.cost,r.leads)},
     {f:'status',h:'진행 상태 · 다음 단계',t:T.area,w:200}
   ]
