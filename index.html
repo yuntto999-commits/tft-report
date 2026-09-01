@@ -470,7 +470,7 @@ function scoreboard(){
   const ml=m.reduce((a,r)=>a+num(r.leads),0), mm=m.reduce((a,r)=>a+num(r.meet),0), mc=m.reduce((a,r)=>a+num(r.cost),0);
   const card=(k,val,unit,d)=>`<div class="card"><div class="k">${k}</div><div class="v">${val}<span class="u">${unit}</span></div><div class="d">${d}</div></div>`;
   $('#score').innerHTML=
-    card('계약 확정',cn,`건 · ${fmt(camt)}만원`,'날인 완료 기준')+
+    card('계약 확정',cn,`건 · ${fmt(camt)}원`,'날인 완료 기준')+
     card('신규 소스 발굴',sn,'건',`예상 ${fmt(samt)}만원 · A확도 ${sa}건`)+
     card('아웃바운드 콜',fmt(calls),'콜',`유효 ${fmt(conn)} · 미팅 ${fmt(appt)} (${pct(appt,conn)})`)+
     card('방문 상담',vn,'건',`초도 ${vnew} · 견적 ${fmt(vq)}만원`)+
