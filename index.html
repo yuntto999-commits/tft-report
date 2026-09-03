@@ -166,7 +166,7 @@
       <tr>
         <th>회 차</th><td style="width:12%"><input id="m_round" placeholder="예: 2026-34차"></td>
         <th>일 자</th><td style="width:12%"><input id="m_date" type="date"></td>
-        <th>요 일</th><td style="width:8%"><select id="m_day"><option>화</option><option>목</option><option>임시</option></select></td>
+        <th>요 일</th><td style="width:8%"><select id="m_day"><option>월</option><option>화</option><option>수</option><option>목</option><option>금</option><option>토</option><option>일</option><option>임시</option></select></td>
         <th>시 간</th><td style="width:10%"><input id="m_time" type="time"></td>
         <th>장 소</th><td><input id="m_place" placeholder="본사 회의실 / 온라인"></td>
       </tr>
@@ -402,6 +402,11 @@ function addRow(key,data){
   tr.querySelectorAll('td.num input').forEach(i=>fmtNumInput(i));
   tb.appendChild(tr);
   return tr;
+}
+function dayFromDate(ymd){
+  const names=['일','월','화','수','목','금','토'];
+  const dt=new Date(ymd+'T00:00:00');
+  return isNaN(dt)?'화':names[dt.getDay()];
 }
 function autoGrow(a){a.style.height='auto';a.style.height=Math.max(52,a.scrollHeight+2)+'px';}
 
@@ -667,7 +672,8 @@ async function toggleClose(){
 }
 
 function newReport(){
-  const d={meta:{day:'화',date:new Date().toISOString().slice(0,10)},etc:''};
+  const today=new Date().toISOString().slice(0,10);
+  const d={meta:{day:dayFromDate(today),date:today,time:'10:00'},etc:''};
   hydrate(d); currentId=null; dirty=false; curClosed=false; $('#loadSel').value='';
   applyLockUi();
   setStatus('새 보고서');
@@ -705,6 +711,7 @@ $('#btnClose').onclick=toggleClose;
 $('#btnPrint').onclick=()=>window.print();
 $('#btnCsv').onclick=csv;
 $('#loadSel').onchange=e=>{ if(e.target.value) load(e.target.value); };
+$('#m_date').addEventListener('change',()=>{ const v=$('#m_date').value; if(v){ $('#m_day').value=dayFromDate(v); markDirty(); } });
 window.addEventListener('beforeunload',e=>{ if(dirty){e.preventDefault();e.returnValue='';} });
 setInterval(()=>{ if(dirty&&currentId&&me&&!curClosed) save(); },60000);  // 1분 자동저장(저장 이력 있는 회차만)
 initAuth();  // 로그인 성공 시 onLogin()에서 refreshList() 실행
