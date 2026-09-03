@@ -70,7 +70,7 @@
   .grid td{border:1px solid var(--line);padding:0;background:var(--fill);vertical-align:middle;}
   .grid tbody tr:nth-child(even) td{background:#FAFAFD;}
   .grid td input,.grid td select,.grid td textarea{width:100%;border:0;background:transparent;padding:6px 5px;outline:none;font-size:12px;resize:none;}
-  .grid td textarea{min-height:30px;line-height:1.35;}
+  .grid td textarea{min-height:52px;line-height:1.35;overflow-y:hidden;}
   .grid td input:focus,.grid td select:focus,.grid td textarea:focus{background:#F0EDFF;}
   .grid td.num input{text-align:right;}
   .grid td.ctr input,.grid td.ctr select{text-align:center;}
@@ -244,8 +244,8 @@ const SCHEMA = [
     {f:'amount',h:'예상 금액',t:T.num,w:82,sum:true},
     {f:'grade',h:'확도',t:T.sel,o:['','A','B','C'],w:58,ctr:true},
     {f:'owner',h:'담당',t:T.text,w:66,ctr:true},
-    {f:'pain',h:'Pain-point / 발굴 배경',t:T.area,w:180},
-    {f:'next',h:'다음 액션 (일자)',t:T.area,w:150}
+    {f:'pain',h:'Pain-point / 발굴 배경',t:T.area,w:230},
+    {f:'next',h:'다음 액션 (일자)',t:T.area,w:190}
   ],
   extraFoot:(rows)=>{
     const g=x=>rows.filter(r=>r.grade===x).length;
@@ -280,7 +280,7 @@ const SCHEMA = [
     {f:'product',h:'제안 제품/규모',t:T.text,w:100},
     {f:'quote',h:'견적금액',t:T.num,w:78,sum:true},
     {f:'summary',h:'상담 내용 요약 · 고객 반응',t:T.area,w:230},
-    {f:'issue',h:'이슈 / 요청사항',t:T.area,w:150},
+    {f:'issue',h:'이슈 / 요청사항',t:T.area,w:200},
     {f:'next',h:'Next Step (기한)',t:T.area,w:140}
   ]
 },
@@ -403,7 +403,7 @@ function addRow(key,data){
   tb.appendChild(tr);
   return tr;
 }
-function autoGrow(a){a.style.height='auto';a.style.height=Math.max(30,a.scrollHeight)+'px';}
+function autoGrow(a){a.style.height='auto';a.style.height=Math.max(52,a.scrollHeight+2)+'px';}
 
 /* ─────────── 수집 / 주입 ─────────── */
 function readTable(key){
