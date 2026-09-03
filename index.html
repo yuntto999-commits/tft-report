@@ -196,7 +196,7 @@
       <b>작성 규칙</b>
       <ul>
         <li>회의 <b>전일 18시까지</b> 각 담당이 본인 영역을 입력하고, 주관자가 확인 후 회의 시작 전 공유한다.</li>
-        <li>금액 단위는 <b>만원(VAT 별도)</b>. 계약은 <b>날인 완료 기준</b>, 소스발굴은 <b>확도 기준</b>으로 이중 집계하지 않는다.</li>
+        <li>금액 단위는 <b>원(VAT 별도)</b>. 계약은 <b>날인 완료 기준</b>, 소스발굴은 <b>확도 기준</b>으로 이중 집계하지 않는다.</li>
         <li>화요일은 1·3·4번(진행 점검) 중심, 목요일은 전 항목 + 6·7번(마감·의사결정) 중심으로 운영한다.</li>
         <li>고객사·담당자 정보는 개인정보에 해당하므로 열람 범위를 TFT 참석자로 제한한다.</li>
       </ul>
@@ -471,10 +471,10 @@ function scoreboard(){
   const card=(k,val,unit,d)=>`<div class="card"><div class="k">${k}</div><div class="v">${val}<span class="u">${unit}</span></div><div class="d">${d}</div></div>`;
   $('#score').innerHTML=
     card('계약 확정',cn,`건 · ${fmt(camt)}원`,'날인 완료 기준')+
-    card('신규 소스 발굴',sn,'건',`예상 ${fmt(samt)}만원 · A확도 ${sa}건`)+
+    card('신규 소스 발굴',sn,'건',`예상 ${fmt(samt)}원 · A확도 ${sa}건`)+
     card('아웃바운드 콜',fmt(calls),'콜',`유효 ${fmt(conn)} · 미팅 ${fmt(appt)} (${pct(appt,conn)})`)+
-    card('방문 상담',vn,'건',`초도 ${vnew} · 견적 ${fmt(vq)}만원`)+
-    card('마케팅 리드',fmt(ml),'건',`상담연결 ${fmt(mm)} · 비용 ${fmt(mc)}만원`);
+    card('방문 상담',vn,'건',`초도 ${vnew} · 견적 ${fmt(vq)}원`)+
+    card('마케팅 리드',fmt(ml),'건',`상담연결 ${fmt(mm)} · 비용 ${fmt(mc)}원`);
 }
 
 /* ─────────── Supabase 설정 (★ 여기 두 줄만 본인 값으로 교체) ─────────── */
