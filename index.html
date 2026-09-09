@@ -403,6 +403,28 @@ function addRow(key,data){
   tb.appendChild(tr);
   return tr;
 }
+/* 동시 저장 충돌 병합: 내 화면 기준 + 서버에만 있는 행 보존 */
+function mergeReports(sv,lc){
+  const out=JSON.parse(JSON.stringify(lc));           // 회의정보는 내 화면 우선
+  SCHEMA.forEach(sec=>{
+    const keyCol=(sec.cols.find(c=>c.key)||sec.cols[0]).f;
+    const hasContent=r=>Object.values(r||{}).some(v=>String(v??'').trim());
+    const lrows=(lc[sec.key]||[]).filter(hasContent);
+    const srows=((sv&&sv[sec.key])||[]).filter(hasContent);
+    const lkeys=new Set(lrows.map(r=>String(r[keyCol]??'').trim()).filter(Boolean));
+    const ljson=new Set(lrows.map(r=>JSON.stringify(r)));
+    const add=srows.filter(r=>{
+      const k=String(r[keyCol]??'').trim();
+      return k ? !lkeys.has(k) : !ljson.has(JSON.stringify(r));
+    });
+    out[sec.key]=lrows.concat(add);
+  });
+  const se=(sv&&sv.etc||'').trim(), le=(lc.etc||'').trim();  // 기타 공유사항은 이어붙임
+  if(se&&le&&se!==le&&!le.includes(se)) out.etc=lc.etc+'\n'+sv.etc;
+  else out.etc=le?lc.etc:(sv&&sv.etc||'');
+  return out;
+}
+
 function dayFromDate(ymd){
   const names=['일','월','화','수','목','금','토'];
   const dt=new Date(ymd+'T00:00:00');
@@ -489,7 +511,7 @@ const SUPABASE_ANON_KEY='sb_publishable_k5RgqEQYvsUyruiZd9boYw_D67w_7KJ';
 /* ─────────── 저장소 (Supabase DB) ─────────── */
 const TBL='tft_reports';
 const ADMIN_EMAIL='sys@newzen.kr';   // 마감 권한 보유자
-let currentId=null, dirty=false, sb=null, me=null, curClosed=false;
+let currentId=null, dirty=false, sb=null, me=null, curClosed=false, baseSavedAt=null;
 
 function isAdmin(){ return me && me.email===ADMIN_EMAIL; }
 
@@ -603,8 +625,18 @@ async function save(){
   if(curClosed){ alert('마감된 보고서는 수정할 수 없습니다.'+(isAdmin()?' 마감 해제 후 수정해 주세요.':'')); return; }
   const id='r_'+d.meta.date+'_'+(d.meta.day||'x');
   d.savedAt=new Date().toISOString();
+  let mergedFrom='';
   try{
     setStatus('저장 중…');
+    // 동시 저장 충돌 감지: 내가 불러온 이후 다른 사람이 저장했으면 병합
+    const {data:cur,error:ce}=await sb.from(TBL).select('saved_at,updated_by,data').eq('id',id).maybeSingle();
+    if(ce) throw ce;
+    if(cur && Date.parse(cur.saved_at)!==Date.parse(baseSavedAt||0)){
+      d=mergeReports(cur.data,d);
+      d.savedAt=new Date().toISOString();
+      mergedFrom=cur.updated_by||'다른 작성자';
+      hydrate(d);   // 병합 결과를 화면에도 반영
+    }
     const row={
       id, date:d.meta.date, day:d.meta.day||'', round:d.meta.round||'',
       n:d.contracts.filter(r=>r.customer.trim()).length,
@@ -613,9 +645,10 @@ async function save(){
     };
     const {error}=await sb.from(TBL).upsert(row);
     if(error) throw error;
-    currentId=id; dirty=false;
+    currentId=id; dirty=false; baseSavedAt=d.savedAt;
     await refreshList();
-    setStatus('저장 완료 · '+new Date().toLocaleTimeString('ko-KR')+' · '+(me.dispName||me.email),'ok');
+    if(mergedFrom) setStatus('⚠ '+mergedFrom+'의 저장 내용과 병합하여 저장했습니다 · 내용을 확인해 주세요','ok');
+    else setStatus('저장 완료 · '+new Date().toLocaleTimeString('ko-KR')+' · '+(me.dispName||me.email),'ok');
   }catch(e){ setStatus('저장 실패 — 다시 시도해 주세요','err'); console.error('[save]',e); }
 }
 
@@ -623,10 +656,10 @@ async function load(id){
   if(dirty && !confirm('저장하지 않은 변경사항이 있습니다. 이동할까요?')) { $('#loadSel').value=currentId||''; return; }
   try{
     setStatus('불러오는 중…');
-    const {data,error}=await sb.from(TBL).select('data,updated_by,closed,closed_by').eq('id',id).maybeSingle();
+    const {data,error}=await sb.from(TBL).select('data,updated_by,closed,closed_by,saved_at').eq('id',id).maybeSingle();
     if(error) throw error;
     if(!data){ setStatus('해당 보고서를 찾을 수 없습니다','err'); return; }
-    hydrate(data.data); currentId=id; dirty=false; curClosed=!!data.closed;
+    hydrate(data.data); currentId=id; dirty=false; curClosed=!!data.closed; baseSavedAt=data.saved_at;
     applyLockUi();
     setStatus((curClosed?'🔒 마감됨':'불러옴')+(data.updated_by?' · 최종 작성: '+data.updated_by:''),curClosed?'':'ok');
   }catch(e){ setStatus('불러오기 실패','err'); console.error('[load]',e); }
@@ -674,7 +707,7 @@ async function toggleClose(){
 function newReport(){
   const today=new Date().toISOString().slice(0,10);
   const d={meta:{day:dayFromDate(today),date:today,time:'10:00'},etc:''};
-  hydrate(d); currentId=null; dirty=false; curClosed=false; $('#loadSel').value='';
+  hydrate(d); currentId=null; dirty=false; curClosed=false; baseSavedAt=null; $('#loadSel').value='';
   applyLockUi();
   setStatus('새 보고서');
 }
