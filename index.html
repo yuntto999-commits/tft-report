@@ -141,6 +141,7 @@
 <div class="bar noprint">
   <div class="bar-in">
     <select id="loadSel" title="저장된 회의 불러오기"><option value="">— 저장된 회의 불러오기 —</option></select>
+    <button class="btn" id="btnRefresh" title="다른 작성자가 저장한 최신 내용을 가져옵니다">🔄 새로 불러오기</button>
     <button class="btn" id="btnNew">＋ 새 보고서</button>
     <button class="btn pri" id="btnSave">저장</button>
     <button class="btn" id="btnCsv">CSV 내보내기</button>
@@ -688,6 +689,31 @@ function applyLockUi(){
   bc.textContent=curClosed?'🔓 마감 해제':'🔒 마감';
 }
 
+/* ─────────── 새로 불러오기 (작성 중 내용 유지 + 최신 병합) ─────────── */
+async function refreshCurrent(){
+  if(!me){ alert('로그인 후 사용할 수 있습니다.'); return; }
+  await refreshList();
+  if(!currentId){ setStatus('저장된 보고서 목록을 새로 불러왔습니다','ok'); return; }
+  try{
+    setStatus('최신 내용 확인 중…');
+    const {data:cur,error}=await sb.from(TBL).select('data,updated_by,closed,saved_at').eq('id',currentId).maybeSingle();
+    if(error) throw error;
+    if(!cur){ setStatus('보고서가 삭제되어 있습니다 — 저장하면 새로 만들어집니다','err'); baseSavedAt=null; return; }
+    curClosed=!!cur.closed;
+    const changed=Date.parse(cur.saved_at)!==Date.parse(baseSavedAt||0);
+    if(!changed){ applyLockUi(); setStatus('이미 최신 상태입니다 · '+new Date().toLocaleTimeString('ko-KR'),'ok'); return; }
+    if(dirty){
+      // 내가 쓰던 내용은 유지하고, 다른 작성자의 행만 화면에 합침
+      const merged=mergeReports(cur.data,collect());
+      hydrate(merged); dirty=true;
+    }else{
+      hydrate(cur.data); dirty=false;
+    }
+    baseSavedAt=cur.saved_at; applyLockUi();
+    setStatus('🔄 '+(cur.updated_by||'다른 작성자')+'의 최신 내용을 불러왔습니다'+(dirty?' · 확인 후 저장해 주세요':''),'ok');
+  }catch(e){ setStatus('새로 불러오기 실패','err'); console.error('[refresh]',e); }
+}
+
 async function toggleClose(){
   if(!isAdmin()||!currentId) return;
   if(dirty&&!curClosed){ alert('저장하지 않은 변경사항이 있습니다. 먼저 저장해 주세요.'); return; }
@@ -741,6 +767,7 @@ $('#btnSave').onclick=save;
 $('#btnNew').onclick=()=>{ if(dirty&&!confirm('저장하지 않은 변경사항이 있습니다. 새로 작성할까요?'))return; newReport(); };
 $('#btnDel').onclick=removeCurrent;
 $('#btnClose').onclick=toggleClose;
+$('#btnRefresh').onclick=refreshCurrent;
 $('#btnPrint').onclick=()=>window.print();
 $('#btnCsv').onclick=csv;
 $('#loadSel').onchange=e=>{ if(e.target.value) load(e.target.value); };
