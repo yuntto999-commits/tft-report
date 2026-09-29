@@ -119,6 +119,9 @@
   .auth-toggle{font-size:12px;color:var(--g1);text-align:center;margin-top:14px;}
   .auth-toggle a{color:var(--pur-2);font-weight:700;cursor:pointer;text-decoration:none;}
   .user-badge{font-size:11.5px;color:var(--pur-3);font-weight:700;white-space:nowrap;}
+  .btn.seg-on{background:var(--pur-2);color:#fff;border-color:var(--pur-2);}
+  #allView .grid td{vertical-align:top;}
+  #allView .who{text-align:center;font-weight:700;color:var(--pur-3);}
 </style>
 <div id="authOverlay">
   <div class="auth-box">
@@ -141,12 +144,15 @@
 <div class="bar noprint">
   <div class="bar-in">
     <select id="loadSel" title="저장된 회의 불러오기"><option value="">— 저장된 회의 불러오기 —</option></select>
-    <button class="btn" id="btnRefresh" title="다른 작성자가 저장한 최신 내용을 가져옵니다">🔄 새로 불러오기</button>
+    <button class="btn" id="btnRefresh" title="최신 내용을 다시 불러옵니다">🔄 새로 불러오기</button>
+    <button class="btn seg-on" id="tabMine">✍ 내 입력</button>
+    <button class="btn" id="tabAll">📋 통합 보고서</button>
     <button class="btn" id="btnNew">＋ 새 보고서</button>
-    <button class="btn pri" id="btnSave">저장</button>
+    <button class="btn" id="btnSave">임시저장</button>
+    <button class="btn pri" id="btnSubmit">✅ 제출</button>
     <button class="btn" id="btnCsv">CSV 내보내기</button>
     <button class="btn" id="btnPrint">인쇄 / PDF</button>
-    <button class="btn dan" id="btnDel">삭제</button>
+    <button class="btn dan" id="btnDel">내 입력 삭제</button>
     <button class="btn" id="btnClose" style="display:none">🔒 마감</button>
     <span class="status" id="status">준비됨</span>
     <span class="user-badge" id="userBadge"></span>
@@ -162,7 +168,7 @@
     <div class="sub">매주 화 · 목 정기 개최 &nbsp;|&nbsp; 화요일 = 주중 진행점검 · 목요일 = 주간 마감보고</div>
   </div>
 
-  <div class="paper">
+  <div class="paper" id="editView">
     <table class="meta">
       <tr>
         <th>회 차</th><td style="width:12%"><input id="m_round" placeholder="예: 2026-34차"></td>
@@ -201,10 +207,12 @@
         <li>화요일은 1·3·4번(진행 점검) 중심, 목요일은 전 항목 + 6·7번(마감·의사결정) 중심으로 운영한다.</li>
         <li>고객사·담당자 정보는 개인정보에 해당하므로 열람 범위를 TFT 참석자로 제한한다.</li>
       </ul>
-      <div class="notice noprint"><b>데이터 저장 안내</b> — 저장한 보고서는 이 문서를 여는 <b>모든 TFT 구성원이 함께 조회·수정</b>할 수 있는 공용 저장소에 기록됩니다. 고객 개인정보(연락처·주민번호 등)는 입력하지 마세요.</div>
+      <div class="notice noprint"><b>작성 방식 안내</b> — 각자 로그인하여 <b>본인 몫만 입력 후 ✅ 제출</b>하면 됩니다 (다른 사람의 입력을 덮어쓸 수 없습니다). 전원 취합 결과는 상단 <b>📋 통합 보고서</b>에서 확인하세요. 고객 개인정보(연락처·주민번호 등)는 입력하지 마세요.</div>
       <div style="margin-top:10px;text-align:right;color:var(--g2)">뉴젠솔루션 ERP영업 활성화 TFT · 서식 v2.0</div>
     </div>
   </div>
+
+  <div class="paper" id="allView" style="display:none;padding:6px 18px 14px"></div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -511,8 +519,9 @@ const SUPABASE_ANON_KEY='sb_publishable_k5RgqEQYvsUyruiZd9boYw_D67w_7KJ';
 
 /* ─────────── 저장소 (Supabase DB) ─────────── */
 const TBL='tft_reports';
+const SUB_TBL='tft_submissions';
 const ADMIN_EMAIL='sys@newzen.kr';   // 마감 권한 보유자
-let currentId=null, dirty=false, sb=null, me=null, curClosed=false, baseSavedAt=null;
+let currentId=null, dirty=false, sb=null, me=null, curClosed=false, baseSavedAt=null, viewAll=false, mySubmitted=false, lastAgg=null;
 
 function isAdmin(){ return me && me.email===ADMIN_EMAIL; }
 
@@ -619,67 +628,101 @@ async function refreshList(){
     list.map(r=>`<option value="${r.id}" ${r.id===currentId?'selected':''}>${r.closed?'🔒 ':''}${esc(r.date||'날짜미정')} (${esc(r.day||'')}) ${esc(r.round||'')} — 계약 ${r.n||0}건${r.closed?' [마감]':''}</option>`).join('');
 }
 
-async function save(){
+async function save(submit=false){
   const d=collect();
   if(!d.meta.date){ alert('회의 일자를 먼저 입력해 주세요.'); $('#m_date').focus(); return; }
   if(!me){ alert('로그인 후 저장할 수 있습니다.'); return; }
   if(curClosed){ alert('마감된 보고서는 수정할 수 없습니다.'+(isAdmin()?' 마감 해제 후 수정해 주세요.':'')); return; }
+  if(submit===true && !confirm('내 입력을 제출합니다. 제출 후에도 마감 전까지는 수정하고 다시 제출할 수 있습니다.')) return;
   const id='r_'+d.meta.date+'_'+(d.meta.day||'x');
-  d.savedAt=new Date().toISOString();
-  let mergedFrom='';
+  const now=new Date().toISOString();
   try{
-    setStatus('저장 중…');
-    // 동시 저장 충돌 감지: 내가 불러온 이후 다른 사람이 저장했으면 병합
-    const {data:cur,error:ce}=await sb.from(TBL).select('saved_at,updated_by,data').eq('id',id).maybeSingle();
-    if(ce) throw ce;
-    if(cur && Date.parse(cur.saved_at)!==Date.parse(baseSavedAt||0)){
-      d=mergeReports(cur.data,d);
-      d.savedAt=new Date().toISOString();
-      mergedFrom=cur.updated_by||'다른 작성자';
-      hydrate(d);   // 병합 결과를 화면에도 반영
-    }
-    const row={
-      id, date:d.meta.date, day:d.meta.day||'', round:d.meta.round||'',
-      n:d.contracts.filter(r=>r.customer.trim()).length,
-      data:d, saved_at:d.savedAt,
-      updated_by:(me.dispName&&me.dispName!==me.email)?me.dispName+' ('+me.email+')':me.email
-    };
-    const {error}=await sb.from(TBL).upsert(row);
-    if(error) throw error;
-    currentId=id; dirty=false; baseSavedAt=d.savedAt;
+    setStatus(submit===true?'제출 중…':'저장 중…');
+    // 1) 회의 공통정보(쉘) 저장
+    const shell={ id, date:d.meta.date, day:d.meta.day||'', round:d.meta.round||'',
+      data:{meta:d.meta}, saved_at:now,
+      updated_by:(me.dispName&&me.dispName!==me.email)?me.dispName+' ('+me.email+')':me.email };
+    const {error:e1}=await sb.from(TBL).upsert(shell);
+    if(e1) throw e1;
+    // 2) 내 입력분 저장 (사람별 별도 행 — 서로 덮어쓸 수 없음)
+    const mine={ report_id:id, user_email:me.email, user_name:me.dispName||me.email,
+      data:{contracts:d.contracts,sources:d.sources,outbound:d.outbound,visits:d.visits,
+            marketing:d.marketing,issues:d.issues,actions:d.actions,etc:d.etc},
+      submitted:(submit===true)?true:mySubmitted, saved_at:now };
+    const {error:e2}=await sb.from(SUB_TBL).upsert(mine,{onConflict:'report_id,user_email'});
+    if(e2) throw e2;
+    if(submit===true) mySubmitted=true;
+    currentId=id; dirty=false; baseSavedAt=now;
+    updateAggCount(id);
     await refreshList();
-    if(mergedFrom) setStatus('⚠ '+mergedFrom+'의 저장 내용과 병합하여 저장했습니다 · 내용을 확인해 주세요','ok');
-    else setStatus('저장 완료 · '+new Date().toLocaleTimeString('ko-KR')+' · '+(me.dispName||me.email),'ok');
-  }catch(e){ setStatus('저장 실패 — 다시 시도해 주세요','err'); console.error('[save]',e); }
+    applyLockUi();
+    setStatus((submit===true?'✅ 제출 완료':'임시저장 완료')+' · '+new Date().toLocaleTimeString('ko-KR')+' · '+(me.dispName||me.email),'ok');
+    if(viewAll) buildAllView();
+  }catch(e){ setStatus((submit===true?'제출':'저장')+' 실패 — 다시 시도해 주세요','err'); console.error('[save]',e); }
+}
+
+/* 목록에 표시할 계약 건수(전원 합산)를 백그라운드로 갱신 */
+async function updateAggCount(id){
+  try{
+    const {data}=await sb.from(SUB_TBL).select('data').eq('report_id',id);
+    const n=(data||[]).reduce((a,x)=>a+(((x.data&&x.data.contracts)||[]).filter(r=>String(r.customer||'').trim()).length),0);
+    await sb.from(TBL).update({n}).eq('id',id);
+  }catch(e){ console.error('[aggCount]',e); }
 }
 
 async function load(id){
   if(dirty && !confirm('저장하지 않은 변경사항이 있습니다. 이동할까요?')) { $('#loadSel').value=currentId||''; return; }
   try{
     setStatus('불러오는 중…');
-    const {data,error}=await sb.from(TBL).select('data,updated_by,closed,closed_by,saved_at').eq('id',id).maybeSingle();
-    if(error) throw error;
-    if(!data){ setStatus('해당 보고서를 찾을 수 없습니다','err'); return; }
-    hydrate(data.data); currentId=id; dirty=false; curClosed=!!data.closed; baseSavedAt=data.saved_at;
+    const [r1,r2]=await Promise.all([
+      sb.from(TBL).select('data,updated_by,closed,saved_at').eq('id',id).maybeSingle(),
+      sb.from(SUB_TBL).select('data,submitted').eq('report_id',id).eq('user_email',me.email).maybeSingle()
+    ]);
+    if(r1.error) throw r1.error;
+    if(r2.error) throw r2.error;
+    const shell=r1.data, mine=r2.data;
+    if(!shell){ setStatus('해당 보고서를 찾을 수 없습니다','err'); return; }
+    const meta=(shell.data&&shell.data.meta)||{};
+    const md=(mine&&mine.data)||{};
+    hydrate({meta, etc:md.etc||'',
+      contracts:md.contracts||[], sources:md.sources||[], outbound:md.outbound||[],
+      visits:md.visits||[], marketing:md.marketing||[], issues:md.issues||[], actions:md.actions||[]});
+    currentId=id; dirty=false; curClosed=!!shell.closed; baseSavedAt=shell.saved_at;
+    mySubmitted=!!(mine&&mine.submitted);
     applyLockUi();
-    setStatus((curClosed?'🔒 마감됨':'불러옴')+(data.updated_by?' · 최종 작성: '+data.updated_by:''),curClosed?'':'ok');
+    setStatus((curClosed?'🔒 마감됨':'불러옴')+(mySubmitted?' · 내 입력 제출완료':' · 내 입력 미제출'),curClosed?'':'ok');
+    if(viewAll) buildAllView();
   }catch(e){ setStatus('불러오기 실패','err'); console.error('[load]',e); }
 }
 
 async function removeCurrent(){
-  if(!currentId){ alert('삭제할 저장 보고서가 선택되지 않았습니다.'); return; }
+  if(!currentId){ setStatus('저장된 보고서가 아닙니다'); return; }
   if(curClosed){ alert('마감된 보고서는 삭제할 수 없습니다.'+(isAdmin()?' 마감 해제 후 삭제해 주세요.':'')); return; }
-  if(!confirm('이 회차 보고서를 삭제합니다. 되돌릴 수 없습니다.')) return;
+  let whole=false;
+  if(isAdmin()){
+    whole=confirm('[관리자] 회의 전체(모든 사람의 입력 포함)를 삭제할까요?\n확인 = 전체 삭제  ·  취소 = 내 입력만 삭제');
+  }
+  if(!whole && !confirm('이 회차에서 내 입력을 삭제합니다. 되돌릴 수 없습니다.')) return;
   try{
-    const {error}=await sb.from(TBL).delete().eq('id',currentId);
-    if(error) throw error;
-    currentId=null; await refreshList(); newReport(); setStatus('삭제됨','ok');
+    if(whole){
+      const {error}=await sb.from(TBL).delete().eq('id',currentId);
+      if(error) throw error;
+      currentId=null; await refreshList(); newReport(); setStatus('회의 전체 삭제됨','ok');
+    }else{
+      const {error}=await sb.from(SUB_TBL).delete().eq('report_id',currentId).eq('user_email',me.email);
+      if(error) throw error;
+      mySubmitted=false; dirty=false;
+      updateAggCount(currentId);
+      await load(currentId);
+      setStatus('내 입력 삭제됨','ok');
+    }
   }catch(e){ setStatus('삭제 실패','err'); console.error('[delete]',e); }
 }
 
 /* ─────────── 마감 (관리자 전용) ─────────── */
 function applyLockUi(){
   $('#btnSave').disabled=curClosed;
+  $('#btnSubmit').disabled=curClosed;
   $('#btnDel').disabled=curClosed;
   // 본문(.wrap) 안의 모든 입력칸 잠금/해제 — 툴바의 불러오기 선택은 유지
   document.querySelectorAll('.wrap input, .wrap textarea, .wrap select, .wrap .add-btn, .wrap .del')
@@ -689,29 +732,108 @@ function applyLockUi(){
   bc.textContent=curClosed?'🔓 마감 해제':'🔒 마감';
 }
 
-/* ─────────── 새로 불러오기 (작성 중 내용 유지 + 최신 병합) ─────────── */
+/* ─────────── 새로 불러오기 ─────────── */
 async function refreshCurrent(){
   if(!me){ alert('로그인 후 사용할 수 있습니다.'); return; }
   await refreshList();
+  if(viewAll){ await buildAllView(); setStatus('통합 보고서를 새로 불러왔습니다 · '+new Date().toLocaleTimeString('ko-KR'),'ok'); return; }
   if(!currentId){ setStatus('저장된 보고서 목록을 새로 불러왔습니다','ok'); return; }
+  if(dirty && !confirm('저장하지 않은 변경사항이 있습니다. 최신 내용으로 다시 불러올까요? (입력 중이던 내용은 사라집니다)')) return;
+  dirty=false; await load(currentId);
+}
+
+/* ─────────── 보기 전환: 내 입력 / 통합 보고서 ─────────── */
+function setView(all){
+  viewAll=all;
+  $('#editView').style.display=all?'none':'';
+  $('#allView').style.display=all?'':'none';
+  $('#tabMine').classList.toggle('seg-on',!all);
+  $('#tabAll').classList.toggle('seg-on',all);
+  ['btnSave','btnSubmit','btnDel','btnNew'].forEach(i=>$('#'+i).style.display=all?'none':'');
+  if(all) buildAllView();
+}
+
+/* 통합 보고서 화면 구성: 전원의 제출분 취합 */
+async function buildAllView(){
+  const el=$('#allView');
+  if(!currentId){
+    el.innerHTML='<div style="padding:34px 10px;color:var(--g1)">먼저 상단에서 저장된 회의를 불러오거나, 내 입력을 한 번 저장(또는 제출)해 주세요.</div>';
+    return;
+  }
+  el.innerHTML='<div style="padding:34px 10px;color:var(--g1)">불러오는 중…</div>';
   try{
-    setStatus('최신 내용 확인 중…');
-    const {data:cur,error}=await sb.from(TBL).select('data,updated_by,closed,saved_at').eq('id',currentId).maybeSingle();
-    if(error) throw error;
-    if(!cur){ setStatus('보고서가 삭제되어 있습니다 — 저장하면 새로 만들어집니다','err'); baseSavedAt=null; return; }
-    curClosed=!!cur.closed;
-    const changed=Date.parse(cur.saved_at)!==Date.parse(baseSavedAt||0);
-    if(!changed){ applyLockUi(); setStatus('이미 최신 상태입니다 · '+new Date().toLocaleTimeString('ko-KR'),'ok'); return; }
-    if(dirty){
-      // 내가 쓰던 내용은 유지하고, 다른 작성자의 행만 화면에 합침
-      const merged=mergeReports(cur.data,collect());
-      hydrate(merged); dirty=true;
-    }else{
-      hydrate(cur.data); dirty=false;
-    }
-    baseSavedAt=cur.saved_at; applyLockUi();
-    setStatus('🔄 '+(cur.updated_by||'다른 작성자')+'의 최신 내용을 불러왔습니다'+(dirty?' · 확인 후 저장해 주세요':''),'ok');
-  }catch(e){ setStatus('새로 불러오기 실패','err'); console.error('[refresh]',e); }
+    const [r1,r2]=await Promise.all([
+      sb.from(TBL).select('data,closed').eq('id',currentId).maybeSingle(),
+      sb.from(SUB_TBL).select('user_name,user_email,data,submitted,saved_at').eq('report_id',currentId).order('user_name')
+    ]);
+    if(r1.error) throw r1.error;
+    if(r2.error) throw r2.error;
+    const shell=r1.data||{}; const meta=(shell.data&&shell.data.meta)||{};
+    const list=(r2.data||[]).slice();
+    // 구버전(공동입력) 데이터 호환 표시
+    if(shell.data&&SCHEMA.some(sec=>(shell.data[sec.key]||[]).length))
+      list.unshift({user_name:'(공동입력)',user_email:'',data:shell.data,submitted:true});
+    // 취합
+    const agg={}; SCHEMA.forEach(sec=>agg[sec.key]=[]);
+    list.forEach(sub=>SCHEMA.forEach(sec=>{
+      ((sub.data&&sub.data[sec.key])||[]).forEach(r=>{
+        if(Object.values(r).some(v=>String(v??'').trim())) agg[sec.key].push({...r,__who:sub.user_name});
+      });
+    }));
+    let h='';
+    h+=`<div style="padding:14px 2px 4px;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap"><b style="font-size:15px">📋 통합 보고서</b><span style="color:var(--g1);font-size:12px">${esc(meta.date||'')} (${esc(meta.day||'')}) ${esc(meta.round||'')}${shell.closed?' · 🔒 마감':''}</span></div>`;
+    const done=list.filter(x=>x.submitted&&x.user_email), tmp=list.filter(x=>!x.submitted&&x.user_email);
+    h+=`<div style="padding:0 2px 12px;font-size:12px;color:var(--g1)">✅ 제출 ${done.length}명${done.length?': '+done.map(x=>esc(x.user_name)).join(', '):''} &nbsp;·&nbsp; ✍ 임시저장 ${tmp.length}명${tmp.length?': '+tmp.map(x=>esc(x.user_name)).join(', '):''}</div>`;
+    h+='<div class="score">'+aggScore(agg)+'</div>';
+    SCHEMA.forEach(sec=>{
+      h+=`<div style="padding:12px 2px 5px"><b style="font-size:13px">${sec.no}. ${esc(sec.title)}</b></div>`;
+      const rows=agg[sec.key];
+      if(!rows.length){ h+='<div style="padding:0 2px 6px;color:var(--g2);font-size:12px">입력 없음</div>'; return; }
+      h+='<div class="scroll"><table class="grid"><thead><tr><th style="min-width:60px">작성자</th>';
+      sec.cols.forEach(c=>h+=`<th>${c.h}</th>`);
+      h+='</tr></thead><tbody>';
+      rows.forEach(r=>{
+        h+='<tr><td class="who">'+esc(r.__who)+'</td>';
+        sec.cols.forEach(c=>{
+          const v=(c.t==='calc')?c.calc(r):(r[c.f]??'');
+          const cls=(c.t==='num'||c.t==='calc')?' class="r"':'';
+          h+=`<td${cls} style="white-space:pre-wrap">${esc(v)}</td>`;
+        });
+        h+='</tr>';
+      });
+      h+='<tr style="background:#F3F0FA;font-weight:700"><td style="padding-left:9px;text-align:left">합계 · '+rows.length+'행</td>';
+      sec.cols.forEach(c=>{ h+= c.sum?`<td class="r">${fmt(rows.reduce((a,r)=>a+num(r[c.f]),0))}</td>`:'<td></td>'; });
+      h+='</tr></tbody></table></div>';
+    });
+    const memos=list.filter(x=>x.data&&String(x.data.etc||'').trim());
+    h+='<div style="padding:12px 2px 5px"><b style="font-size:13px">＋ 기타 공유사항</b></div>';
+    h+= memos.length
+      ? memos.map(x=>`<div style="padding:3px 2px;font-size:12.5px"><b style="color:var(--pur-3)">${esc(x.user_name)}</b> — <span style="white-space:pre-wrap">${esc(x.data.etc)}</span></div>`).join('')
+      : '<div style="padding:0 2px 6px;color:var(--g2);font-size:12px">입력 없음</div>';
+    h+='<div style="height:14px"></div>';
+    el.innerHTML=h;
+    lastAgg={meta,agg,memos:memos.map(x=>({name:x.user_name,etc:x.data.etc}))};
+  }catch(e){
+    el.innerHTML='<div style="padding:34px 10px;color:var(--warn)">통합 보고서를 불러오지 못했습니다. 새로 불러오기를 눌러 다시 시도해 주세요.</div>';
+    console.error('[allView]',e);
+  }
+}
+
+/* 통합 요약 카드 (전원 합산) */
+function aggScore(agg){
+  const c=agg.contracts,s2=agg.sources,o=agg.outbound,v=agg.visits,m=agg.marketing;
+  const cn=c.filter(r=>String(r.customer||'').trim()).length, camt=c.reduce((a,r)=>a+num(r.amount),0);
+  const sn=s2.filter(r=>String(r.company||'').trim()).length, samt=s2.reduce((a,r)=>a+num(r.amount),0);
+  const sa=s2.filter(r=>r.grade==='A').length;
+  const calls=o.reduce((a,r)=>a+num(r.calls),0), conn=o.reduce((a,r)=>a+num(r.conn),0), appt=o.reduce((a,r)=>a+num(r.appt),0);
+  const vn=v.filter(r=>String(r.company||'').trim()).length, vnew=v.filter(r=>r.vtype==='초도방문').length, vq=v.reduce((a,r)=>a+num(r.quote),0);
+  const ml=m.reduce((a,r)=>a+num(r.leads),0), mm=m.reduce((a,r)=>a+num(r.meet),0), mc=m.reduce((a,r)=>a+num(r.cost),0);
+  const card=(k,val,unit,d2)=>`<div class="card"><div class="k">${k}</div><div class="v">${val}<span class="u">${unit}</span></div><div class="d">${d2}</div></div>`;
+  return card('계약 확정',cn,`건 · ${fmt(camt)}원`,'날인 완료 기준')+
+    card('신규 소스 발굴',sn,'건',`예상 ${fmt(samt)}원 · A확도 ${sa}건`)+
+    card('아웃바운드 콜',fmt(calls),'콜',`유효 ${fmt(conn)} · 미팅 ${fmt(appt)} (${pct(appt,conn)})`)+
+    card('방문 상담',vn,'건',`초도 ${vnew} · 견적 ${fmt(vq)}원`)+
+    card('마케팅 리드',fmt(ml),'건',`상담연결 ${fmt(mm)} · 비용 ${fmt(mc)}원`);
 }
 
 async function toggleClose(){
@@ -733,14 +855,32 @@ async function toggleClose(){
 function newReport(){
   const today=new Date().toISOString().slice(0,10);
   const d={meta:{day:dayFromDate(today),date:today,time:'10:00'},etc:''};
-  hydrate(d); currentId=null; dirty=false; curClosed=false; baseSavedAt=null; $('#loadSel').value='';
+  hydrate(d); currentId=null; dirty=false; curClosed=false; baseSavedAt=null; mySubmitted=false; $('#loadSel').value='';
   applyLockUi();
   setStatus('새 보고서');
 }
 
 /* CSV */
 function csv(){
-  const d=collect(); const q=s=>'"'+String(s??'').replace(/"/g,'""')+'"';
+  const q=s=>'"'+String(s??'').replace(/"/g,'""')+'"';
+  if(viewAll&&lastAgg){
+    let out='회의일자,'+q(lastAgg.meta.date)+',요일,'+q(lastAgg.meta.day)+',회차,'+q(lastAgg.meta.round)+'\n\n';
+    SCHEMA.forEach(sec=>{
+      out+=sec.no+'. '+sec.title+'\n';
+      out+='작성자,'+sec.cols.filter(c=>c.t!=='calc').map(c=>q(c.h.replace(/<br>/g,' '))).join(',')+'\n';
+      (lastAgg.agg[sec.key]||[]).forEach(r=>{ out+=q(r.__who)+','+sec.cols.filter(c=>c.t!=='calc').map(c=>q(r[c.f])).join(',')+'\n'; });
+      out+='\n';
+    });
+    out+='기타 공유사항\n';
+    lastAgg.memos.forEach(m2=>{ out+=q(m2.name)+','+q(m2.etc)+'\n'; });
+    const blob=new Blob(['\uFEFF'+out],{type:'text/csv;charset=utf-8;'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download=`TFT통합보고서_${lastAgg.meta.date||'미정'}_${lastAgg.meta.day||''}.csv`;
+    a.click();
+    return;
+  }
+  const d=collect();
   let out='회의일자,'+q(d.meta.date)+',요일,'+q(d.meta.day)+',회차,'+q(d.meta.round)+'\n\n';
   SCHEMA.forEach(s=>{
     out+=s.no+'. '+s.title+'\n';
@@ -763,7 +903,10 @@ document.addEventListener('input',e=>{
   markDirty(); recalc();
 });
 document.addEventListener('change',e=>{ if(!e.target.closest('.bar')){markDirty();recalc();} });
-$('#btnSave').onclick=save;
+$('#btnSave').onclick=()=>save(false);
+$('#btnSubmit').onclick=()=>save(true);
+$('#tabMine').onclick=()=>setView(false);
+$('#tabAll').onclick=()=>setView(true);
 $('#btnNew').onclick=()=>{ if(dirty&&!confirm('저장하지 않은 변경사항이 있습니다. 새로 작성할까요?'))return; newReport(); };
 $('#btnDel').onclick=removeCurrent;
 $('#btnClose').onclick=toggleClose;
@@ -773,7 +916,7 @@ $('#btnCsv').onclick=csv;
 $('#loadSel').onchange=e=>{ if(e.target.value) load(e.target.value); };
 $('#m_date').addEventListener('change',()=>{ const v=$('#m_date').value; if(v){ $('#m_day').value=dayFromDate(v); markDirty(); } });
 window.addEventListener('beforeunload',e=>{ if(dirty){e.preventDefault();e.returnValue='';} });
-setInterval(()=>{ if(dirty&&currentId&&me&&!curClosed) save(); },60000);  // 1분 자동저장(저장 이력 있는 회차만)
+setInterval(()=>{ if(dirty&&currentId&&me&&!curClosed&&!viewAll) save(false); },60000);  // 1분 자동저장(저장 이력 있는 회차만)
 initAuth();  // 로그인 성공 시 onLogin()에서 refreshList() 실행
 </script>
 </body>
