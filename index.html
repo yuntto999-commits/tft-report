@@ -638,9 +638,15 @@ async function save(submit=false){
   const now=new Date().toISOString();
   try{
     setStatus(submit===true?'제출 중…':'저장 중…');
-    // 1) 회의 공통정보(쉘) 저장
+    // 1) 회의 공통정보(쉘) 저장 — 구버전(공동입력) 데이터는 보존하고 회의정보만 갱신
+    let shellData={meta:d.meta};
+    {
+      const {data:ex,error:ee}=await sb.from(TBL).select('data').eq('id',id).maybeSingle();
+      if(ee) throw ee;
+      if(ex&&ex.data) shellData={...ex.data, meta:d.meta};
+    }
     const shell={ id, date:d.meta.date, day:d.meta.day||'', round:d.meta.round||'',
-      data:{meta:d.meta}, saved_at:now,
+      data:shellData, saved_at:now,
       updated_by:(me.dispName&&me.dispName!==me.email)?me.dispName+' ('+me.email+')':me.email };
     const {error:e1}=await sb.from(TBL).upsert(shell);
     if(e1) throw e1;
