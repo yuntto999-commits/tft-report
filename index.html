@@ -788,6 +788,7 @@ async function buildAllView(){
     }));
     let h='';
     h+=`<div style="padding:14px 2px 4px;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap"><b style="font-size:15px">📋 통합 보고서</b><span style="color:var(--g1);font-size:12px">${esc(meta.date||'')} (${esc(meta.day||'')}) ${esc(meta.round||'')}${shell.closed?' · 🔒 마감':''}</span></div>`;
+    h+=`<div style="padding:0 2px 2px;font-size:12px;color:var(--g1)"><b style="color:var(--pur-3)">참석</b> ${esc(meta.att||'—')} &nbsp;·&nbsp; <b style="color:var(--pur-3)">불참/대행</b> ${esc(meta.abs||'—')}</div>`;
     const done=list.filter(x=>x.submitted&&x.user_email), tmp=list.filter(x=>!x.submitted&&x.user_email);
     h+=`<div style="padding:0 2px 12px;font-size:12px;color:var(--g1)">✅ 제출 ${done.length}명${done.length?': '+done.map(x=>esc(x.user_name)).join(', '):''} &nbsp;·&nbsp; ✍ 임시저장 ${tmp.length}명${tmp.length?': '+tmp.map(x=>esc(x.user_name)).join(', '):''}</div>`;
     h+='<div class="score">'+aggScore(agg)+'</div>';
@@ -795,15 +796,22 @@ async function buildAllView(){
       h+=`<div style="padding:12px 2px 5px"><b style="font-size:13px">${sec.no}. ${esc(sec.title)}</b></div>`;
       const rows=agg[sec.key];
       if(!rows.length){ h+='<div style="padding:0 2px 6px;color:var(--g2);font-size:12px">입력 없음</div>'; return; }
-      h+='<div class="scroll"><table class="grid"><thead><tr><th style="min-width:60px">작성자</th>';
-      sec.cols.forEach(c=>h+=`<th>${c.h}</th>`);
+      h+='<div style="border:1px solid var(--line)"><table class="grid" style="width:100%;min-width:0;table-layout:auto"><thead><tr><th style="width:56px">작성자</th>';
+      sec.cols.forEach(c=>{
+        let st='';
+        if(c.t===T.date) st=' style="width:92px;white-space:nowrap"';
+        else if(c.key) st=' style="min-width:130px"';
+        else if(c.t===T.num||c.t==='calc') st=' style="width:70px"';
+        h+=`<th${st}>${c.h}</th>`;
+      });
       h+='</tr></thead><tbody>';
       rows.forEach(r=>{
         h+='<tr><td class="who">'+esc(r.__who)+'</td>';
         sec.cols.forEach(c=>{
           const v=(c.t==='calc')?c.calc(r):(r[c.f]??'');
           const cls=(c.t==='num'||c.t==='calc')?' class="r"':'';
-          h+=`<td${cls} style="white-space:pre-wrap">${esc(v)}</td>`;
+          const ws=(c.t===T.date)?'nowrap':'pre-wrap';
+          h+=`<td${cls} style="white-space:${ws}">${esc(v)}</td>`;
         });
         h+='</tr>';
       });
